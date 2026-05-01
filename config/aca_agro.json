@@ -1,0 +1,134 @@
+{
+  "empresa": {
+    "nombre": "ACA Agropecuaria Coop. Ltda.",
+    "sector": "agro",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "hectareas",
+    "kpi_principal": "rendimiento_tn_ha",
+    "capacidad_total": 15000,
+    "umbral_critico": 0.75
+  },
+  "ubicacion": {
+    "lat": -32.9468,
+    "lon": -60.6393,
+    "lugar": "Rosario, Santa Fe"
+  },
+  "riesgos": [
+    {
+      "id": "AGR-001",
+      "nombre": "Sequía crítica zona núcleo",
+      "categoria": "climatico",
+      "probabilidad_base": 0.35,
+      "impacto_base": 0.92,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "precipitacion_acumulada_mm",
+        "indice_sequia_palmer"
+      ],
+      "umbrales": {
+        "precipitacion_acumulada_mm": {
+          "alerta": 25,
+          "critico": 10
+        },
+        "indice_sequia_palmer": {
+          "alerta": -1.5,
+          "critico": -3.0
+        }
+      }
+    },
+    {
+      "id": "AGR-002",
+      "nombre": "Caída precio soja / maíz",
+      "categoria": "mercado",
+      "probabilidad_base": 0.3,
+      "impacto_base": 0.8,
+      "fuente_dato": "api_precios",
+      "indicadores": [
+        "precio_soja_usd_tn",
+        "precio_maiz_usd_tn"
+      ],
+      "umbrales": {
+        "precio_soja_usd_tn": {
+          "alerta": 310,
+          "critico": 265
+        },
+        "precio_maiz_usd_tn": {
+          "alerta": 175,
+          "critico": 145
+        }
+      }
+    },
+    {
+      "id": "AGR-003",
+      "nombre": "Helada tardía / temprana",
+      "categoria": "climatico",
+      "probabilidad_base": 0.2,
+      "impacto_base": 0.85,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "temperatura_minima_c"
+      ],
+      "umbrales": {
+        "temperatura_minima_c": {
+          "alerta": 3,
+          "critico": 0
+        }
+      }
+    },
+    {
+      "id": "AGR-004",
+      "nombre": "Cuello de botella logístico",
+      "categoria": "operacional",
+      "probabilidad_base": 0.25,
+      "impacto_base": 0.6,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "camiones_disponibles",
+        "capacidad_silo_libre_tn"
+      ],
+      "umbrales": {
+        "camiones_disponibles": {
+          "alerta": 8,
+          "critico": 3
+        },
+        "capacidad_silo_libre_tn": {
+          "alerta": 2000,
+          "critico": 500
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "precipitacion_acumulada_mm": 38.0,
+    "indice_sequia_palmer": -0.8,
+    "temperatura_minima_c": 9.0,
+    "precio_soja_usd_tn": 318.0,
+    "precio_maiz_usd_tn": 182.0,
+    "camiones_disponibles": 14.0,
+    "capacidad_silo_libre_tn": 4200.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "gerencia@aca.coop",
+    "frecuencia_chequeo_minutos": 360,
+    "score_umbral_alerta": 0.4,
+    "score_umbral_critico": 0.65
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Agro",
+    "frecuencia": "semanal",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "INTA / MAGyP / INDEC 2024",
+    "nota": "Zona núcleo pampeana. Soja: precio referencia CBOT. Palmer: INTA SMN. Silobolsa promedio 4500tn libres."
+  }
+}

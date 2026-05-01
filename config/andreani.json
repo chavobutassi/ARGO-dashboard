@@ -1,0 +1,124 @@
+{
+  "empresa": {
+    "nombre": "Andreani Logística S.A.",
+    "sector": "logistica",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "vehiculos",
+    "kpi_principal": "OTIF",
+    "capacidad_total": 120,
+    "umbral_critico": 0.88
+  },
+  "ubicacion": {
+    "lat": -34.6037,
+    "lon": -58.3816,
+    "lugar": "Buenos Aires (GBA)"
+  },
+  "riesgos": [
+    {
+      "id": "LOG-001",
+      "nombre": "Corte de ruta por clima",
+      "categoria": "climatico",
+      "probabilidad_base": 0.3,
+      "impacto_base": 0.8,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "precipitacion_mm",
+        "viento_kmh"
+      ],
+      "umbrales": {
+        "precipitacion_mm": {
+          "alerta": 30,
+          "critico": 60
+        },
+        "viento_kmh": {
+          "alerta": 60,
+          "critico": 90
+        }
+      }
+    },
+    {
+      "id": "LOG-002",
+      "nombre": "Precio combustible crítico",
+      "categoria": "abastecimiento",
+      "probabilidad_base": 0.35,
+      "impacto_base": 0.75,
+      "fuente_dato": "api_combustibles",
+      "indicadores": [
+        "precio_gasoil_ars"
+      ],
+      "umbrales": {
+        "precio_gasoil_ars": {
+          "alerta": 1300,
+          "critico": 1650
+        }
+      }
+    },
+    {
+      "id": "LOG-003",
+      "nombre": "Falla mecánica de flota",
+      "categoria": "operacional",
+      "probabilidad_base": 0.2,
+      "impacto_base": 0.65,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "vehiculos_en_taller"
+      ],
+      "umbrales": {
+        "vehiculos_en_taller": {
+          "alerta": 12,
+          "critico": 24
+        }
+      }
+    },
+    {
+      "id": "LOG-004",
+      "nombre": "Faltante de conductores",
+      "categoria": "personas",
+      "probabilidad_base": 0.15,
+      "impacto_base": 0.55,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "conductores_sin_reemplazo"
+      ],
+      "umbrales": {
+        "conductores_sin_reemplazo": {
+          "alerta": 5,
+          "critico": 12
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "precipitacion_mm": 8.0,
+    "viento_kmh": 22.0,
+    "temperatura_c": 17.0,
+    "precio_gasoil_ars": 1420.0,
+    "vehiculos_en_taller": 6.0,
+    "conductores_disponibles": 108.0,
+    "conductores_sin_reemplazo": 3.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "ops@andreani.com",
+    "frecuencia_chequeo_minutos": 60,
+    "score_umbral_alerta": 0.45,
+    "score_umbral_critico": 0.7
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Logística",
+    "frecuencia": "diaria",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "INDEC / SRT 2024",
+    "nota": "120 vehículos = empresa logística grande Argentina. OTIF objetivo 88%. Gasoil benchmark SEPA 2024-2025."
+  }
+}

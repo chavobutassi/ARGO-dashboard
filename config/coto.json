@@ -1,0 +1,134 @@
+{
+  "empresa": {
+    "nombre": "Coto CICSA",
+    "sector": "retail",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "sucursales",
+    "kpi_principal": "fill_rate_pct",
+    "capacidad_total": 130,
+    "umbral_critico": 0.9
+  },
+  "ubicacion": {
+    "lat": -34.6037,
+    "lon": -58.3816,
+    "lugar": "Buenos Aires (GBA)"
+  },
+  "riesgos": [
+    {
+      "id": "RET-001",
+      "nombre": "Quiebre de stock masivo",
+      "categoria": "abastecimiento",
+      "probabilidad_base": 0.35,
+      "impacto_base": 0.8,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "skus_en_quiebre_pct"
+      ],
+      "umbrales": {
+        "skus_en_quiebre_pct": {
+          "alerta": 8,
+          "critico": 18
+        }
+      }
+    },
+    {
+      "id": "RET-002",
+      "nombre": "Falla de proveedor clave",
+      "categoria": "abastecimiento",
+      "probabilidad_base": 0.22,
+      "impacto_base": 0.75,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "proveedores_con_demora"
+      ],
+      "umbrales": {
+        "proveedores_con_demora": {
+          "alerta": 3,
+          "critico": 7
+        }
+      }
+    },
+    {
+      "id": "RET-003",
+      "nombre": "Pico de demanda no planificado",
+      "categoria": "mercado",
+      "probabilidad_base": 0.28,
+      "impacto_base": 0.6,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "variacion_demanda_pct"
+      ],
+      "umbrales": {
+        "variacion_demanda_pct": {
+          "alerta": 20,
+          "critico": 45
+        }
+      }
+    },
+    {
+      "id": "RET-004",
+      "nombre": "Falla sistemas ERP / caja",
+      "categoria": "operacional",
+      "probabilidad_base": 0.1,
+      "impacto_base": 0.9,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "sucursales_sin_sistema"
+      ],
+      "umbrales": {
+        "sucursales_sin_sistema": {
+          "alerta": 2,
+          "critico": 5
+        }
+      }
+    },
+    {
+      "id": "RET-005",
+      "nombre": "Impacto inflación en márgenes",
+      "categoria": "mercado",
+      "probabilidad_base": 0.45,
+      "impacto_base": 0.7,
+      "fuente_dato": "api_precios",
+      "indicadores": [
+        "tipo_cambio"
+      ],
+      "umbrales": {
+        "tipo_cambio": {
+          "alerta": 1200,
+          "critico": 1500
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "skus_en_quiebre_pct": 4.5,
+    "proveedores_con_demora": 2.0,
+    "variacion_demanda_pct": 8.0,
+    "sucursales_sin_sistema": 0.0,
+    "tipo_cambio": 1085.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "ops@coto.com.ar",
+    "frecuencia_chequeo_minutos": 120,
+    "score_umbral_alerta": 0.42,
+    "score_umbral_critico": 0.68
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Retail",
+    "frecuencia": "diaria",
+    "incluir_mapa": false,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "INDEC / Nielsen Argentina 2024",
+    "nota": "130 sucursales = cadena grande Argentina. Fill rate objetivo 90%+. Quiebre promedio industria 5-7%. Inflación 2024 impacto crítico en márgenes."
+  }
+}

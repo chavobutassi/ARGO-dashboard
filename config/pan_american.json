@@ -1,0 +1,128 @@
+{
+  "empresa": {
+    "nombre": "Pan American Energy S.A.",
+    "sector": "energia",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "pozos_activos",
+    "kpi_principal": "produccion_bbl_dia",
+    "capacidad_total": 85,
+    "umbral_critico": 0.87
+  },
+  "ubicacion": {
+    "lat": -38.9516,
+    "lon": -68.0591,
+    "lugar": "Neuquén, Vaca Muerta"
+  },
+  "riesgos": [
+    {
+      "id": "ENE-001",
+      "nombre": "Falla equipo de producción",
+      "categoria": "operacional",
+      "probabilidad_base": 0.22,
+      "impacto_base": 0.88,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "equipos_produccion_fuera_servicio"
+      ],
+      "umbrales": {
+        "equipos_produccion_fuera_servicio": {
+          "alerta": 3,
+          "critico": 7
+        }
+      }
+    },
+    {
+      "id": "ENE-002",
+      "nombre": "Caída del precio del barril",
+      "categoria": "mercado",
+      "probabilidad_base": 0.28,
+      "impacto_base": 0.75,
+      "fuente_dato": "api_precios",
+      "indicadores": [
+        "petroleo_wti_usd"
+      ],
+      "umbrales": {
+        "petroleo_wti_usd": {
+          "alerta": 68,
+          "critico": 52
+        }
+      }
+    },
+    {
+      "id": "ENE-003",
+      "nombre": "Clima extremo en yacimiento",
+      "categoria": "climatico",
+      "probabilidad_base": 0.18,
+      "impacto_base": 0.7,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "viento_kmh",
+        "temperatura_c"
+      ],
+      "umbrales": {
+        "viento_kmh": {
+          "alerta": 75,
+          "critico": 105
+        },
+        "temperatura_c": {
+          "alerta": -8,
+          "critico": -18
+        }
+      }
+    },
+    {
+      "id": "ENE-004",
+      "nombre": "Conflicto laboral sindical",
+      "categoria": "personas",
+      "probabilidad_base": 0.2,
+      "impacto_base": 0.8,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "ausentismo_pct",
+        "horas_paro_acumuladas"
+      ],
+      "umbrales": {
+        "ausentismo_pct": {
+          "alerta": 12,
+          "critico": 22
+        },
+        "horas_paro_acumuladas": {
+          "alerta": 8,
+          "critico": 24
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "equipos_produccion_fuera_servicio": 2.0,
+    "petroleo_wti_usd": 74.5,
+    "viento_kmh": 38.0,
+    "temperatura_c": 8.0,
+    "ausentismo_pct": 7.0,
+    "horas_paro_acumuladas": 0.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "ops@pae.com.ar",
+    "frecuencia_chequeo_minutos": 240,
+    "score_umbral_alerta": 0.45,
+    "score_umbral_critico": 0.72
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Energía",
+    "frecuencia": "por_turno",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "Secretaría Energía / IAPG 2024",
+    "nota": "85 pozos activos = operación grande Vaca Muerta. WTI break-even shale argentino ~52-58 USD. Viento Neuquén: promedio 45km/h, extremos 110+."
+  }
+}

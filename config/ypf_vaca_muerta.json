@@ -1,0 +1,106 @@
+{
+  "empresa": {
+    "nombre": "YPF Vaca Muerta",
+    "sector": "energia",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "pozos_activos",
+    "kpi_principal": "produccion_diaria_tn",
+    "capacidad_total": 48,
+    "umbral_critico": 0.85
+  },
+  "riesgos": [
+    {
+      "id": "ENE-001",
+      "nombre": "Falla de equipo de producción",
+      "categoria": "operacional",
+      "probabilidad_base": 0.25,
+      "impacto_base": 0.85,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "equipos_produccion_fuera_servicio"
+      ],
+      "umbrales": {
+        "equipos_produccion_fuera_servicio": {
+          "alerta": 1,
+          "critico": 2
+        }
+      }
+    },
+    {
+      "id": "ENE-002",
+      "nombre": "Caída del precio del barril",
+      "categoria": "mercado",
+      "probabilidad_base": 0.3,
+      "impacto_base": 0.7,
+      "fuente_dato": "api_precios",
+      "indicadores": [
+        "petroleo_wti_usd"
+      ],
+      "umbrales": {
+        "petroleo_wti_usd": {
+          "alerta": 65,
+          "critico": 50
+        }
+      }
+    },
+    {
+      "id": "ENE-003",
+      "nombre": "Condición climática en yacimiento",
+      "categoria": "climatico",
+      "probabilidad_base": 0.2,
+      "impacto_base": 0.65,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "viento_kmh",
+        "temperatura_c"
+      ],
+      "umbrales": {
+        "viento_kmh": {
+          "alerta": 70,
+          "critico": 100
+        }
+      }
+    },
+    {
+      "id": "ENE-004",
+      "nombre": "Conflicto laboral / sindical",
+      "categoria": "personas",
+      "probabilidad_base": 0.15,
+      "impacto_base": 0.75,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "ausentismo_pct"
+      ],
+      "umbrales": {
+        "ausentismo_pct": {
+          "alerta": 10,
+          "critico": 20
+        }
+      }
+    }
+  ],
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "ops@ypf.com",
+    "frecuencia_chequeo_minutos": 480,
+    "score_umbral_alerta": 0.5,
+    "score_umbral_critico": 0.75
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Energia",
+    "frecuencia": "por_turno",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  },
+  "_meta": {
+    "generado_por": "ARGO Config Wizard v1.0",
+    "generado_en": "2026-04-26T04:53:48.337755"
+  }
+}

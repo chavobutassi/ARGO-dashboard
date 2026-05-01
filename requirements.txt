@@ -1,0 +1,19 @@
+# ARGO — Dependencias de producción
+# Motor central (sin dependencias externas — solo stdlib Python 3.10+)
+
+# Dashboard visual
+dash==2.17.1
+dash-bootstrap-components==1.6.0
+plotly==5.22.0
+
+# Datos y análisis
+pandas==2.2.2
+numpy==1.26.4
+requests==2.32.3
+yfinance==0.2.40
+
+# Deploy / servidor WSGI
+gunicorn==22.0.0
+
+# Utilidades
+urllib3==2.2.1

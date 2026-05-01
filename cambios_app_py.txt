@@ -1,0 +1,23 @@
+# ── CAMBIOS A HACER EN dashboard/app.py ──────────────────────
+#
+# 1. Al principio del archivo, agregá "import os" junto a los otros imports:
+#
+#    import os
+#
+#
+# 2. Donde se crea la app Dash (buscá: app = dash.Dash), verificá que
+#    la línea siguiente exista o agregala justo debajo:
+#
+#    server = app.server   # ← Render/gunicorn necesita esta línea
+#
+#
+# 3. Al final del archivo, reemplazá el bloque if __name__ == "__main__":
+#    por este:
+#
+#    if __name__ == "__main__":
+#        port = int(os.environ.get("PORT", 8050))
+#        print(f"\n  Argo Dashboard — iniciando en http://localhost:{port}\n")
+#        app.run(debug=False, host="0.0.0.0", port=port)
+#
+# ─────────────────────────────────────────────────────────────
+# Eso es todo. Tres cambios pequeños y el app queda listo para Render.

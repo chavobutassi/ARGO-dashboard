@@ -1,0 +1,70 @@
+{
+  "empresa": "Transportadora del Sur S.A.",
+  "sector": "logistica",
+  "timestamp": "2026-04-26T04:33:30.382176",
+  "score_global": 0.47,
+  "nivel_global": "MEDIO",
+  "color_global": "#BA7517",
+  "resumen_ejecutivo": "SITREP ARGO — Transportadora del Sur S.A.\nFecha: 26/04/2026 04:33 | Sector: LOGISTICA\nScore operacional global: 47/100 — Nivel: MEDIO\n\nALTO: Corte de ruta por clima. Revisión y preparación de respuesta.\n\nTotal de riesgos monitoreados: 4 | Críticos: 0 | Altos: 1",
+  "alertas_activas": [
+    "🟡 [ALTO] Corte de ruta por clima — índice de riesgo: 58/100. Indicadores activados: precipitacion_mm. Revisar plan de mitigación. Escalar a supervisión."
+  ],
+  "riesgos": [
+    {
+      "id": "RLOG-001",
+      "nombre": "Corte de ruta por clima",
+      "categoria": "externo",
+      "score": 0.588,
+      "nivel": "ALTO",
+      "color": "#D85A30",
+      "probabilidad": 0.6,
+      "impacto": 0.85,
+      "indicadores": [
+        "precipitacion_mm=65.0 [CRÍTICO]"
+      ],
+      "mensaje": "[ALTO] Corte de ruta por clima — índice de riesgo: 58/100. Indicadores activados: precipitacion_mm. Revisar plan de mitigación. Escalar a supervisión."
+    },
+    {
+      "id": "RLOG-002",
+      "nombre": "Escasez de combustible",
+      "categoria": "abastecimiento",
+      "score": 0.452,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.37,
+      "impacto": 0.75,
+      "indicadores": [
+        "precio_gasoil_ars=1350.0 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Escasez de combustible — índice de riesgo: 45/100. Indicadores activados: precio_gasoil_ars. Monitoreo reforzado. Preparar respuesta."
+    },
+    {
+      "id": "RLOG-003",
+      "nombre": "Falla mecanica de flota",
+      "categoria": "operacional",
+      "score": 0.417,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.32,
+      "impacto": 0.65,
+      "indicadores": [
+        "vehiculos_en_taller=3.0 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Falla mecanica de flota — índice de riesgo: 41/100. Indicadores activados: vehiculos_en_taller. Monitoreo reforzado. Preparar respuesta."
+    },
+    {
+      "id": "RLOG-004",
+      "nombre": "Perdida de conductor clave",
+      "categoria": "personas",
+      "score": 0.307,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.27,
+      "impacto": 0.55,
+      "indicadores": [
+        "conductores_sin_reemplazo=1.0 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Perdida de conductor clave — índice de riesgo: 30/100. Indicadores activados: conductores_sin_reemplazo. Monitoreo reforzado. Preparar respuesta."
+    }
+  ]
+}

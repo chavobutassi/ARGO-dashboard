@@ -1,0 +1,146 @@
+{
+  "empresa": {
+    "nombre": "Swiss Medical S.A.",
+    "sector": "salud",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "camas",
+    "kpi_principal": "tiempo_respuesta_guardia_min",
+    "capacidad_total": 420,
+    "umbral_critico": 0.85
+  },
+  "ubicacion": {
+    "lat": -34.5875,
+    "lon": -58.3974,
+    "lugar": "Buenos Aires (CABA)"
+  },
+  "riesgos": [
+    {
+      "id": "SAL-001",
+      "nombre": "Quiebre insumo crítico",
+      "categoria": "abastecimiento",
+      "probabilidad_base": 0.28,
+      "impacto_base": 0.95,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "insumos_bajo_stock_critico"
+      ],
+      "umbrales": {
+        "insumos_bajo_stock_critico": {
+          "alerta": 3,
+          "critico": 6
+        }
+      }
+    },
+    {
+      "id": "SAL-002",
+      "nombre": "Saturación UCI / guardia",
+      "categoria": "operacional",
+      "probabilidad_base": 0.22,
+      "impacto_base": 0.92,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "ocupacion_uci_pct",
+        "espera_guardia_min"
+      ],
+      "umbrales": {
+        "ocupacion_uci_pct": {
+          "alerta": 82,
+          "critico": 93
+        },
+        "espera_guardia_min": {
+          "alerta": 45,
+          "critico": 90
+        }
+      }
+    },
+    {
+      "id": "SAL-003",
+      "nombre": "Guardia médica incompleta",
+      "categoria": "personas",
+      "probabilidad_base": 0.18,
+      "impacto_base": 0.88,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "medicos_faltantes_guardia",
+        "ausentismo_enfermeria_pct"
+      ],
+      "umbrales": {
+        "medicos_faltantes_guardia": {
+          "alerta": 1,
+          "critico": 3
+        },
+        "ausentismo_enfermeria_pct": {
+          "alerta": 12,
+          "critico": 22
+        }
+      }
+    },
+    {
+      "id": "SAL-004",
+      "nombre": "Falla sistemas críticos",
+      "categoria": "operacional",
+      "probabilidad_base": 0.08,
+      "impacto_base": 0.98,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "sistemas_criticos_caidos"
+      ],
+      "umbrales": {
+        "sistemas_criticos_caidos": {
+          "alerta": 1,
+          "critico": 1
+        }
+      }
+    },
+    {
+      "id": "SAL-005",
+      "nombre": "Brote / evento epidémico",
+      "categoria": "externo",
+      "probabilidad_base": 0.12,
+      "impacto_base": 0.85,
+      "fuente_dato": "externo",
+      "indicadores": [
+        "pacientes_febriles_guardia"
+      ],
+      "umbrales": {
+        "pacientes_febriles_guardia": {
+          "alerta": 25,
+          "critico": 50
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "insumos_bajo_stock_critico": 1.0,
+    "ocupacion_uci_pct": 68.0,
+    "espera_guardia_min": 28.0,
+    "medicos_faltantes_guardia": 0.0,
+    "ausentismo_enfermeria_pct": 8.5,
+    "sistemas_criticos_caidos": 0.0,
+    "pacientes_febriles_guardia": 12.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "gerencia.medica@swissmedical.com.ar",
+    "frecuencia_chequeo_minutos": 30,
+    "score_umbral_alerta": 0.38,
+    "score_umbral_critico": 0.62
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Salud",
+    "frecuencia": "por_turno",
+    "incluir_mapa": false,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "Min. Salud / ACAMI 2024",
+    "nota": "420 camas = clínica grande Argentina. UCI benchmark ocupación segura <85%. Guardia: espera OMS máximo 60 min urgencias. SRT sector salud IF 12.3."
+  }
+}

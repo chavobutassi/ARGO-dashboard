@@ -1,0 +1,74 @@
+{
+  "empresa": "Cooperativa Agropecuaria Pampa Sur",
+  "sector": "agro",
+  "timestamp": "2026-04-26T04:33:30.383942",
+  "score_global": 0.587,
+  "nivel_global": "ALTO",
+  "color_global": "#D85A30",
+  "resumen_ejecutivo": "SITREP ARGO — Cooperativa Agropecuaria Pampa Sur\nFecha: 26/04/2026 04:33 | Sector: AGRO\nScore operacional global: 58/100 — Nivel: ALTO\n\nALTO: Sequia critica. Revisión y preparación de respuesta.\n\nTotal de riesgos monitoreados: 4 | Críticos: 0 | Altos: 1",
+  "alertas_activas": [
+    "🔴 [ALTO] Sequia critica — índice de riesgo: 71/100. Indicadores activados: precipitacion_acumulada_mm, indice_sequia_palmer. Revisar plan de mitigación. Escalar a supervisión.",
+    "🟡 [MEDIO] Caida de precio commodity — índice de riesgo: 49/100. Indicadores activados: precio_soja_usd_tn. Monitoreo reforzado. Preparar respuesta.",
+    "🟡 [MEDIO] Demora en logistica de cosecha — índice de riesgo: 47/100. Indicadores activados: camiones_disponibles. Monitoreo reforzado. Preparar respuesta.",
+    "🟡 [MEDIO] Helada fuera de temporada — índice de riesgo: 53/100. Indicadores activados: temperatura_minima_c. Monitoreo reforzado. Preparar respuesta."
+  ],
+  "riesgos": [
+    {
+      "id": "RAGR-001",
+      "nombre": "Sequia critica",
+      "categoria": "climatico",
+      "score": 0.712,
+      "nivel": "ALTO",
+      "color": "#D85A30",
+      "probabilidad": 0.64,
+      "impacto": 1.0,
+      "indicadores": [
+        "precipitacion_acumulada_mm=12.0 [ALERTA]",
+        "indice_sequia_palmer=-2.4 [ALERTA]"
+      ],
+      "mensaje": "[ALTO] Sequia critica — índice de riesgo: 71/100. Indicadores activados: precipitacion_acumulada_mm, indice_sequia_palmer. Revisar plan de mitigación. Escalar a supervisión."
+    },
+    {
+      "id": "RAGR-004",
+      "nombre": "Helada fuera de temporada",
+      "categoria": "climatico",
+      "score": 0.54,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.32,
+      "impacto": 0.85,
+      "indicadores": [
+        "temperatura_minima_c=1.5 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Helada fuera de temporada — índice de riesgo: 53/100. Indicadores activados: temperatura_minima_c. Monitoreo reforzado. Preparar respuesta."
+    },
+    {
+      "id": "RAGR-002",
+      "nombre": "Caida de precio commodity",
+      "categoria": "mercado",
+      "score": 0.495,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.42,
+      "impacto": 0.8,
+      "indicadores": [
+        "precio_soja_usd_tn=305.0 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Caida de precio commodity — índice de riesgo: 49/100. Indicadores activados: precio_soja_usd_tn. Monitoreo reforzado. Preparar respuesta."
+    },
+    {
+      "id": "RAGR-003",
+      "nombre": "Demora en logistica de cosecha",
+      "categoria": "operacional",
+      "score": 0.475,
+      "nivel": "MEDIO",
+      "color": "#BA7517",
+      "probabilidad": 0.37,
+      "impacto": 0.7,
+      "indicadores": [
+        "camiones_disponibles=4.0 [ALERTA]"
+      ],
+      "mensaje": "[MEDIO] Demora en logistica de cosecha — índice de riesgo: 47/100. Indicadores activados: camiones_disponibles. Monitoreo reforzado. Preparar respuesta."
+    }
+  ]
+}

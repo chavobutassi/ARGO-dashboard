@@ -1,0 +1,83 @@
+{
+  "empresa": {
+    "nombre": "Transportadora del Sur S.A.",
+    "sector": "logistica",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+
+  "unidad_operacional": {
+    "nombre": "vehiculos",
+    "kpi_principal": "OTIF",
+    "capacidad_total": 14,
+    "umbral_critico": 0.85
+  },
+
+  "riesgos": [
+    {
+      "id": "RLOG-001",
+      "nombre": "Corte de ruta por clima",
+      "categoria": "externo",
+      "probabilidad_base": 0.35,
+      "impacto_base": 0.80,
+      "fuente_dato": "api_clima",
+      "indicadores": ["precipitacion_mm", "viento_kmh", "temperatura_c"],
+      "umbrales": {
+        "precipitacion_mm": {"alerta": 30, "critico": 60},
+        "viento_kmh":       {"alerta": 60, "critico": 90}
+      }
+    },
+    {
+      "id": "RLOG-002",
+      "nombre": "Escasez de combustible",
+      "categoria": "abastecimiento",
+      "probabilidad_base": 0.25,
+      "impacto_base": 0.70,
+      "fuente_dato": "manual",
+      "indicadores": ["precio_gasoil_ars", "disponibilidad_surtidores"],
+      "umbrales": {
+        "precio_gasoil_ars": {"alerta": 1200, "critico": 1500}
+      }
+    },
+    {
+      "id": "RLOG-003",
+      "nombre": "Falla mecanica de flota",
+      "categoria": "operacional",
+      "probabilidad_base": 0.20,
+      "impacto_base": 0.60,
+      "fuente_dato": "interno",
+      "indicadores": ["vehiculos_en_taller", "edad_promedio_flota_anios"],
+      "umbrales": {
+        "vehiculos_en_taller": {"alerta": 2, "critico": 4}
+      }
+    },
+    {
+      "id": "RLOG-004",
+      "nombre": "Perdida de conductor clave",
+      "categoria": "personas",
+      "probabilidad_base": 0.15,
+      "impacto_base": 0.50,
+      "fuente_dato": "interno",
+      "indicadores": ["conductores_disponibles", "conductores_sin_reemplazo"],
+      "umbrales": {
+        "conductores_sin_reemplazo": {"alerta": 1, "critico": 3}
+      }
+    }
+  ],
+
+  "alertas": {
+    "canales": ["log", "email"],
+    "email_destino": "operaciones@transportadora.com.ar",
+    "frecuencia_chequeo_minutos": 60,
+    "score_umbral_alerta": 0.50,
+    "score_umbral_critico": 0.75
+  },
+
+  "reporte": {
+    "nombre_producto": "ARGO — Módulo Logística",
+    "frecuencia": "diaria",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "empresa": {
+    "nombre": "Livent Argentina S.A. (Fenix)",
+    "sector": "mineria",
+    "pais": "Argentina",
+    "moneda": "ARS",
+    "zona_horaria": "America/Argentina/Buenos_Aires"
+  },
+  "unidad_operacional": {
+    "nombre": "equipos_produccion",
+    "kpi_principal": "disponibilidad_equipos_pct",
+    "capacidad_total": 28,
+    "umbral_critico": 0.85
+  },
+  "ubicacion": {
+    "lat": -23.6345,
+    "lon": -67.4891,
+    "lugar": "Puna Atacameña, Jujuy"
+  },
+  "riesgos": [
+    {
+      "id": "MIN-001",
+      "nombre": "Falla equipo crítico",
+      "categoria": "operacional",
+      "probabilidad_base": 0.25,
+      "impacto_base": 0.9,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "equipos_fuera_servicio"
+      ],
+      "umbrales": {
+        "equipos_fuera_servicio": {
+          "alerta": 2,
+          "critico": 5
+        }
+      }
+    },
+    {
+      "id": "MIN-002",
+      "nombre": "Clima extremo en altura",
+      "categoria": "climatico",
+      "probabilidad_base": 0.3,
+      "impacto_base": 0.75,
+      "fuente_dato": "api_clima",
+      "indicadores": [
+        "viento_kmh",
+        "temperatura_c"
+      ],
+      "umbrales": {
+        "viento_kmh": {
+          "alerta": 85,
+          "critico": 115
+        },
+        "temperatura_c": {
+          "alerta": -10,
+          "critico": -20
+        }
+      }
+    },
+    {
+      "id": "MIN-003",
+      "nombre": "Incidente de seguridad HSE",
+      "categoria": "operacional",
+      "probabilidad_base": 0.12,
+      "impacto_base": 0.95,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "incidentes_mes",
+        "dias_sin_accidentes"
+      ],
+      "umbrales": {
+        "incidentes_mes": {
+          "alerta": 1,
+          "critico": 3
+        },
+        "dias_sin_accidentes": {
+          "alerta": 60,
+          "critico": 30
+        }
+      }
+    },
+    {
+      "id": "MIN-004",
+      "nombre": "Rotación personal técnico",
+      "categoria": "personas",
+      "probabilidad_base": 0.2,
+      "impacto_base": 0.65,
+      "fuente_dato": "interno",
+      "indicadores": [
+        "tasa_rotacion_mensual_pct"
+      ],
+      "umbrales": {
+        "tasa_rotacion_mensual_pct": {
+          "alerta": 4,
+          "critico": 9
+        }
+      }
+    },
+    {
+      "id": "MIN-005",
+      "nombre": "Precio litio / commodities",
+      "categoria": "mercado",
+      "probabilidad_base": 0.35,
+      "impacto_base": 0.85,
+      "fuente_dato": "api_precios",
+      "indicadores": [
+        "precio_litio_usd_tn"
+      ],
+      "umbrales": {
+        "precio_litio_usd_tn": {
+          "alerta": 14000,
+          "critico": 9000
+        }
+      }
+    }
+  ],
+  "lecturas_default": {
+    "equipos_fuera_servicio": 1.0,
+    "viento_kmh": 52.0,
+    "temperatura_c": -3.0,
+    "incidentes_mes": 0.0,
+    "dias_sin_accidentes": 142.0,
+    "tasa_rotacion_mensual_pct": 3.2,
+    "precio_litio_usd_tn": 11500.0
+  },
+  "alertas": {
+    "canales": [
+      "log",
+      "email"
+    ],
+    "email_destino": "hse@livent.com",
+    "frecuencia_chequeo_minutos": 480,
+    "score_umbral_alerta": 0.4,
+    "score_umbral_critico": 0.68
+  },
+  "reporte": {
+    "nombre_producto": "ARGO — Minería",
+    "frecuencia": "por_turno",
+    "incluir_mapa": true,
+    "formato": "pdf"
+  },
+  "_benchmark": {
+    "fuente": "SRT / Secretaría Minería 2024",
+    "nota": "Puna: 3800 msnm, viento extremo 115+, temp mínima -25°C. Litio: precio spot 2024 caída a 10-12k USD/tn. SRT: minería IF 8.5 accidentes/millón hs."
+  }
+}
