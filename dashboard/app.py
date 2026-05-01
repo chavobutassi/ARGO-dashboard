@@ -77,7 +77,7 @@ COLORES = {
     "ALTO":          "#D85A30",
     "MEDIO":         "#BA7517",
     "BAJO":          "#639922",
-    "fondo":         "#F8F7F4",
+    "fondo":         "transparent",
     "fondo_critico": "#FCEBEB",
     "fondo_alto":    "#FAECE7",
     "fondo_medio":   "#FAEEDA",
