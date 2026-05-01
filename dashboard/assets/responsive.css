@@ -1,131 +1,158 @@
 /*
- * ARGO — Estilos responsivos
- * Dash carga automáticamente todo lo que esté en dashboard/assets/
- * Breakpoints: 1920 | 1440 | 1280 | 1024 | 768
+ * ARGO — Fondo profesional dark + grilla de datos
+ * Colocar en: dashboard/assets/argo_background.css
+ * Dash carga automáticamente todo lo que esté en assets/
  */
 
-/* ── Grillas base (1920px — pantalla completa) ─────────────── */
+/* ── Fondo oscuro con grilla de datos ──────────────────────── */
 
-.argo-zona1 {
-  display: grid;
-  grid-template-columns: 210px 1fr 300px 180px;
-  gap: 14px;
+body, ._dash-loading, #react-entry-point {
+  background-color: #0D1B2A !important;
+  background-image:
+    linear-gradient(rgba(55,138,221,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.07) 1px, transparent 1px),
+    linear-gradient(rgba(55,138,221,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.025) 1px, transparent 1px) !important;
+  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
+  min-height: 100vh;
 }
 
-.argo-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+/* Puntos sutiles encima de la grilla */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(55,138,221,0.18) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 20px 20px;
+  opacity: 0.35;
 }
 
-.argo-zona2-paneles {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 14px;
+/* Resplandor superior izquierdo (azul) */
+body::after {
+  content: "";
+  position: fixed;
+  top: -120px;
+  left: 8%;
+  width: 600px;
+  height: 400px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgba(55,138,221,0.14) 0%, transparent 70%);
 }
 
-.argo-zona3-top {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+/* Contenedor principal sobre el fondo */
+.container-fluid,
+#_dash-app-content,
+.dash-app {
+  position: relative;
+  z-index: 1;
 }
 
-.argo-zona3-bottom {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 14px;
+/* ── Cards: glassmorphism sobre fondo oscuro ───────────────── */
+
+.card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 0.5px solid rgba(55, 138, 221, 0.2) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-radius: 12px !important;
+  color: #E8E6E0 !important;
 }
 
+/* ── Textos adapatados al fondo oscuro ─────────────────────── */
 
-/* ── 1440px — pantalla grande ──────────────────────────────── */
-
-@media (max-width: 1440px) {
-  .argo-zona1 {
-    grid-template-columns: 190px 1fr 280px 175px;
-  }
-  .argo-zona2-paneles {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
+body, p, span, div, label {
+  color: #C8C6C0;
 }
 
-
-/* ── 1280px — laptop estándar ──────────────────────────────── */
-
-@media (max-width: 1280px) {
-  .argo-zona1 {
-    grid-template-columns: 190px 1fr 180px;
-  }
-  #panel-mapa {
-    display: none;
-  }
-
-  .argo-zona2-paneles {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .argo-zona3-top {
-    grid-template-columns: 1fr;
-  }
-
-  .argo-zona3-bottom {
-    grid-template-columns: 1fr;
-  }
+h1, h2, h3, h4, h5, h6 {
+  color: #E8E6E0 !important;
 }
 
+/* ── Dropdown selector de empresa ──────────────────────────── */
 
-/* ── 1024px — laptop chico / tablet horizontal ─────────────── */
-
-@media (max-width: 1024px) {
-  .argo-zona1 {
-    grid-template-columns: 1fr 1fr;
-  }
-  #panel-mapa {
-    display: none;
-  }
-
-  .argo-kpi-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .argo-zona2-paneles {
-    grid-template-columns: 1fr;
-  }
+.Select-control,
+.Select-menu-outer,
+.VirtualizedSelectOption {
+  background-color: rgba(13, 27, 42, 0.85) !important;
+  border-color: rgba(55, 138, 221, 0.3) !important;
+  color: #C8C6C0 !important;
 }
 
+.Select-value-label,
+.Select-placeholder {
+  color: #C8C6C0 !important;
+}
 
-/* ── 768px — tablet vertical ───────────────────────────────── */
+/* ── Barra superior / navbar ───────────────────────────────── */
+
+.navbar, nav {
+  background: rgba(13, 27, 42, 0.9) !important;
+  border-bottom: 0.5px solid rgba(55, 138, 221, 0.2) !important;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Botones ────────────────────────────────────────────────── */
+
+.btn-outline-secondary,
+button[id*="btn"] {
+  background: rgba(55, 138, 221, 0.12) !important;
+  border-color: rgba(55, 138, 221, 0.35) !important;
+  color: #8FBFE8 !important;
+}
+
+.btn-outline-secondary:hover,
+button[id*="btn"]:hover {
+  background: rgba(55, 138, 221, 0.22) !important;
+}
+
+/* ── Badges de nivel de riesgo — se preservan los colores ARGO */
+
+/* CRITICO */
+[style*="E24B4A"] { filter: brightness(1.1); }
+
+/* ── Gráficos Plotly — fondo transparente ──────────────────── */
+
+.js-plotly-plot .plotly .bg,
+.plotly-graph-div {
+  background: transparent !important;
+}
+
+.js-plotly-plot text {
+  fill: #8A8880 !important;
+}
+
+/* ── Scrollbar estilizada ───────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.03);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(55,138,221,0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(55,138,221,0.5);
+}
+
+/* ── Separadores y bordes ───────────────────────────────────── */
+
+hr {
+  border-color: rgba(55, 138, 221, 0.15) !important;
+}
+
+/* ── Responsive: el fondo se mantiene en todas las pantallas── */
 
 @media (max-width: 768px) {
-  .argo-zona1,
-  .argo-zona2-paneles,
-  .argo-zona3-top,
-  .argo-zona3-bottom {
-    grid-template-columns: 1fr;
-  }
-
-  .argo-kpi-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-
-/* ── Mejoras generales de legibilidad ──────────────────────── */
-
-/* Evita que el texto desborde las cards en pantallas chicas */
-.dash-graph {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-/* Dropdown del selector de empresa — se achica en pantallas chicas */
-@media (max-width: 1280px) {
-  #empresa-selector {
-    width: 220px !important;
-  }
-}
-
-@media (max-width: 1024px) {
-  #empresa-selector {
-    width: 180px !important;
+  body::after {
+    width: 300px;
+    height: 200px;
   }
 }
