@@ -1603,10 +1603,10 @@ def actualizar_mapa(data):
             geo=dict(
                 scope="south america",
                 resolution=50,
-                showland=True, landcolor="#F8F7F4",
+                showland=True, landcolor="#0D1B2A",
                 showsubunits=True, subunitcolor="#E5E4DC", subunitwidth=0.5,
                 showcountries=True, countrycolor="#C5C3BB",
-                showocean=True, oceancolor="#EEF3F8",
+                showocean=True, oceancolor="#0A1520",
                 showcoastlines=True, coastlinecolor="#B4B2A9",
                 lataxis_range=[-55, -21],
                 lonaxis_range=[-73, -53],

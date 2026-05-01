@@ -1,7 +1,6 @@
 /*
  * ARGO — Fondo profesional dark + grilla de datos
  * Colocar en: dashboard/assets/argo_background.css
- * Dash carga automáticamente todo lo que esté en assets/
  */
 
 /* ── Fondo oscuro con grilla de datos ──────────────────────── */
@@ -51,6 +50,16 @@ body::after {
   z-index: 1;
 }
 
+/* ── Solo el body hereda color base — no pisar colores de riesgo ── */
+
+body {
+  color: #C8C6C0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #E8E6E0 !important;
+}
+
 /* ── Cards: glassmorphism sobre fondo oscuro ───────────────── */
 
 .card {
@@ -59,16 +68,6 @@ body::after {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border-radius: 12px !important;
-  color: #E8E6E0 !important;
-}
-
-/* ── Textos adapatados al fondo oscuro ─────────────────────── */
-
-body, p, span, div, label {
-  color: #C8C6C0;
-}
-
-h1, h2, h3, h4, h5, h6 {
   color: #E8E6E0 !important;
 }
 
@@ -109,11 +108,6 @@ button[id*="btn"]:hover {
   background: rgba(55, 138, 221, 0.22) !important;
 }
 
-/* ── Badges de nivel de riesgo — se preservan los colores ARGO */
-
-/* CRITICO */
-[style*="E24B4A"] { filter: brightness(1.1); }
-
 /* ── Gráficos Plotly — fondo transparente ──────────────────── */
 
 .js-plotly-plot .plotly .bg,
@@ -142,13 +136,13 @@ button[id*="btn"]:hover {
   background: rgba(55,138,221,0.5);
 }
 
-/* ── Separadores y bordes ───────────────────────────────────── */
+/* ── Separadores ────────────────────────────────────────────── */
 
 hr {
   border-color: rgba(55, 138, 221, 0.15) !important;
 }
 
-/* ── Responsive: el fondo se mantiene en todas las pantallas── */
+/* ── Responsive ─────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
   body::after {
