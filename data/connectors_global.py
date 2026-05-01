@@ -91,12 +91,11 @@ class ConectorGlobal:
 
         try:
             url = (
-                "https://fenixservices.fao.org/faostat/api/v1/en/data/QCL"
+                "https://faostat.fao.org/api/v1/en/data/QCL"
                 f"?item={codigo}"
                 f"&year={año}"
-                "&element=5510"          # Production (tonnes)
+                "&element=5510"
                 "&area_group=countries"
-                "&show_codes=true"
                 "&output_type=objects"
             )
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
@@ -158,7 +157,7 @@ class ConectorGlobal:
         try:
             url = (
                 "https://apps.fas.usda.gov/psdonline/api/psd/commodity"
-                f"/{commodity_code}/country/000/year/0"
+                f"/{commodity_code}"
             )
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
             resp.raise_for_status()

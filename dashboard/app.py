@@ -70,6 +70,15 @@ except (ImportError, SyntaxError) as _e:
     else:
         print("[Argo] Aviso: connectors.py no encontrado en data/ — usando lecturas_default.")
 
+try:
+    from data.connectors_global import ConectorGlobal
+    _conector_global: "ConectorGlobal | None" = ConectorGlobal()
+    GLOBAL_DISPONIBLE = True
+except (ImportError, Exception) as _e:
+    GLOBAL_DISPONIBLE = False
+    _conector_global = None
+    print(f"[Argo] Aviso: connectors_global.py no disponible — panel global desactivado. ({_e})")
+
 
 # ── Paleta Argo ────────────────────────────────────────────
 COLORES = {
@@ -611,6 +620,55 @@ app.layout = html.Div(
 
         # ── Contenido principal ──────────────────────────────
         html.Div(style={"padding": "20px 28px"}, children=[
+
+            # ═══════════════════════════════════════════════════
+            # ZONA GLOBAL — Contexto mundial agropecuario
+            # Siempre visible, independiente de la empresa
+            # ═══════════════════════════════════════════════════
+            html.Div(
+                style={"display": "flex", "alignItems": "center",
+                       "gap": "12px", "marginBottom": "12px"},
+                children=[
+                    html.Div(style={
+                        "width": "4px", "height": "18px",
+                        "backgroundColor": COLORES["azul"], "borderRadius": "2px",
+                    }),
+                    html.Div("Contexto Global — Mercados mundiales", style={
+                        "fontSize": "11px", "fontWeight": "500",
+                        "color": COLORES["texto2"], "textTransform": "uppercase",
+                        "letterSpacing": "0.08em",
+                    }),
+                    html.Div(id="global-timestamp", style={
+                        "fontSize": "10px", "color": COLORES["texto2"],
+                    }),
+                ],
+            ),
+            # Fila superior: precios CBOT + señales
+            html.Div(
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "1fr 1fr",
+                    "gap": "14px",
+                    "marginBottom": "14px",
+                },
+                children=[
+                    html.Div(id="panel-global-precios",  style=_card()),
+                    html.Div(id="panel-global-señales",  style=_card()),
+                ],
+            ),
+            # Fila inferior: ranking productores + stocks USDA
+            html.Div(
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "1fr 1fr",
+                    "gap": "14px",
+                    "marginBottom": "28px",
+                },
+                children=[
+                    html.Div(id="panel-global-ranking", style=_card()),
+                    html.Div(id="panel-global-usda",    style=_card()),
+                ],
+            ),
 
             # ═══════════════════════════════════════════════════
             # ZONA 1 — OPERADOR   ¿Hay algo urgente ahora?
@@ -1757,6 +1815,273 @@ def toggle_zona3(n_clicks):
     estilo = {"display": "block"} if abierta else {"display": "none"}
     texto  = "▲  Ocultar análisis" if abierta else "▼  Ver análisis completo"
     return estilo, texto
+
+
+# ── Global. Precios CBOT ────────────────────────────────────
+@app.callback(
+    Output("panel-global-precios", "children"),
+    Output("global-timestamp",     "children"),
+    Input("auto-refresh",          "n_intervals"),
+    Input("btn-analizar",          "n_clicks"),
+)
+def actualizar_global_precios(_intervals, _clicks):
+    if not GLOBAL_DISPONIBLE:
+        return [_lbl("Precios globales"), html.Div("No disponible",
+                style={"fontSize": "12px", "color": COLORES["texto2"]})], ""
+
+    try:
+        precios = _conector_global.precios_globales_cbot()
+    except Exception as e:
+        log.warning(f"Panel global precios error: {e}")
+        return [], ""
+
+    ts = precios.get("timestamp", "")
+    try:
+        ts_fmt = datetime.fromisoformat(ts).strftime("%H:%M")
+        ts_label = f"Actualizado {ts_fmt}"
+    except Exception:
+        ts_label = ""
+
+    granos = [
+        ("soja",  "Soja"),
+        ("maiz",  "Maíz"),
+        ("trigo", "Trigo"),
+        ("wti",   "Petróleo WTI"),
+        ("brent", "Petróleo Brent"),
+    ]
+
+    filas = []
+    for clave, nombre in granos:
+        p = precios.get(clave)
+        if not p:
+            continue
+        filas.append(html.Div(
+            style={
+                "display": "flex", "alignItems": "center",
+                "justifyContent": "space-between",
+                "padding": "8px 0",
+                "borderBottom": f"0.5px solid {COLORES['borde']}",
+            },
+            children=[
+                html.Div(nombre, style={"fontSize": "12px", "color": COLORES["texto"],
+                                        "fontWeight": "500"}),
+                html.Div(style={"display": "flex", "alignItems": "center", "gap": "10px"},
+                         children=[
+                     html.Div(f"USD {p['precio']:,.2f}", style={
+                         "fontSize": "13px", "fontWeight": "600",
+                         "color": COLORES["texto"],
+                     }),
+                     html.Div(
+                         f"{p['tendencia']} {p['cambio_pct']:+.1f}%",
+                         style={"fontSize": "11px", "fontWeight": "500",
+                                "color": p["color"], "minWidth": "60px",
+                                "textAlign": "right"},
+                     ),
+                 ]),
+            ]
+        ))
+
+    return [
+        _lbl("Precios CBOT Chicago — tiempo real"),
+        *filas,
+        html.Div("Fuente: Yahoo Finance / CBOT", style={
+            "fontSize": "10px", "color": COLORES["texto2"],
+            "marginTop": "10px",
+        }),
+    ], ts_label
+
+
+# ── Global. Señales de mercado ───────────────────────────────
+@app.callback(
+    Output("panel-global-señales", "children"),
+    Input("auto-refresh",          "n_intervals"),
+    Input("btn-analizar",          "n_clicks"),
+)
+def actualizar_global_señales(_intervals, _clicks):
+    if not GLOBAL_DISPONIBLE:
+        return []
+    try:
+        señales = _conector_global.señales_mercado_mundial()
+    except Exception as e:
+        log.warning(f"Panel global señales error: {e}")
+        return []
+
+    if not señales:
+        return [_lbl("Señales de mercado mundial"),
+                html.Div("Sin señales relevantes en este momento.",
+                         style={"fontSize": "12px", "color": COLORES["texto2"]})]
+
+    impacto_color = {
+        "ALTO":  COLORES["CRITICO"],
+        "MEDIO": COLORES["MEDIO"],
+        "BAJO":  COLORES["BAJO"],
+    }
+
+    items = []
+    for s in señales[:5]:
+        color = s.get("color", COLORES["azul"])
+        badge_color = impacto_color.get(s.get("impacto", "MEDIO"), COLORES["MEDIO"])
+        items.append(html.Div(
+            style={
+                "padding": "10px 0",
+                "borderBottom": f"0.5px solid {COLORES['borde']}",
+            },
+            children=[
+                html.Div(
+                    style={"display": "flex", "alignItems": "center",
+                           "gap": "8px", "marginBottom": "4px"},
+                    children=[
+                        html.Div(style={
+                            "width": "8px", "height": "8px",
+                            "borderRadius": "50%", "backgroundColor": color,
+                            "flexShrink": "0",
+                        }),
+                        html.Div(s["titulo"], style={
+                            "fontSize": "12px", "fontWeight": "600",
+                            "color": COLORES["texto"], "flex": "1",
+                        }),
+                        html.Div(s.get("impacto", ""), style={
+                            "fontSize": "9px", "fontWeight": "500",
+                            "color": badge_color,
+                            "border": f"0.5px solid {badge_color}",
+                            "borderRadius": "4px", "padding": "1px 6px",
+                        }),
+                    ]
+                ),
+                html.Div(s["descripcion"], style={
+                    "fontSize": "11px", "color": COLORES["texto2"],
+                    "lineHeight": "1.5", "paddingLeft": "16px",
+                }),
+            ]
+        ))
+
+    return [_lbl("Señales de mercado mundial"), *items]
+
+
+# ── Global. Ranking productores ──────────────────────────────
+@app.callback(
+    Output("panel-global-ranking", "children"),
+    Input("auto-refresh",          "n_intervals"),
+)
+def actualizar_global_ranking(_intervals):
+    if not GLOBAL_DISPONIBLE:
+        return []
+    try:
+        ranking = _conector_global.ranking_productores("soja")
+    except Exception as e:
+        log.warning(f"Panel ranking error: {e}")
+        return []
+
+    filas = []
+    for r in ranking[:10]:
+        es_arg = r.get("es_argentina", False)
+        filas.append(html.Div(
+            style={
+                "display": "flex", "alignItems": "center", "gap": "10px",
+                "padding": "7px 8px", "borderRadius": "6px",
+                "marginBottom": "3px",
+                "backgroundColor": COLORES["fondo_bajo"] if es_arg else COLORES["fondo"],
+            },
+            children=[
+                html.Div(f"#{r['posicion']}", style={
+                    "fontSize": "11px", "fontWeight": "600",
+                    "color": COLORES["BAJO"] if es_arg else COLORES["texto2"],
+                    "minWidth": "24px",
+                }),
+                html.Div(r["pais"], style={
+                    "fontSize": "12px", "flex": "1",
+                    "color": COLORES["BAJO"] if es_arg else COLORES["texto"],
+                    "fontWeight": "600" if es_arg else "400",
+                }),
+                html.Div(f"{r['produccion_mm']} MM tn", style={
+                    "fontSize": "11px", "color": COLORES["texto2"],
+                    "minWidth": "80px", "textAlign": "right",
+                }),
+                html.Div(f"{r['pct_global']}%", style={
+                    "fontSize": "11px", "fontWeight": "500",
+                    "color": COLORES["BAJO"] if es_arg else COLORES["texto2"],
+                    "minWidth": "40px", "textAlign": "right",
+                }),
+            ]
+        ))
+
+    return [
+        _lbl("Top 10 productores mundiales — Soja"),
+        *filas,
+        html.Div("Fuente: FAO / datos campaña 2022-23", style={
+            "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
+        }),
+    ]
+
+
+# ── Global. USDA stocks ──────────────────────────────────────
+@app.callback(
+    Output("panel-global-usda", "children"),
+    Input("auto-refresh",       "n_intervals"),
+)
+def actualizar_global_usda(_intervals):
+    if not GLOBAL_DISPONIBLE:
+        return []
+    try:
+        usda = _conector_global.oferta_demanda_usda("soja")
+        usda_maiz = _conector_global.oferta_demanda_usda("maiz")
+    except Exception as e:
+        log.warning(f"Panel USDA error: {e}")
+        return []
+
+    color_señal = usda.get("señal_color", COLORES["MEDIO"])
+    señal       = usda.get("señal_stocks", "N/D")
+    desc        = usda.get("señal_desc", "")
+
+    def _stat(label, valor, unidad="MM tn"):
+        return html.Div(
+            style={
+                "display": "flex", "justifyContent": "space-between",
+                "alignItems": "center", "padding": "7px 0",
+                "borderBottom": f"0.5px solid {COLORES['borde']}",
+            },
+            children=[
+                html.Div(label, style={"fontSize": "12px", "color": COLORES["texto2"]}),
+                html.Div(f"{valor} {unidad}" if valor != "N/D" else "N/D",
+                         style={"fontSize": "12px", "fontWeight": "600",
+                                "color": COLORES["texto"]}),
+            ]
+        )
+
+    return [
+        _lbl("Oferta y demanda mundial — Soja / Maíz"),
+        # Badge señal
+        html.Div(
+            style={
+                "backgroundColor": usda.get("señal_color", COLORES["fondo_medio"])
+                                      .replace(")", ", 0.15)").replace("rgb", "rgba")
+                                   if "rgb" in usda.get("señal_color","") else COLORES["fondo_medio"],
+                "border": f"1px solid {color_señal}",
+                "borderRadius": "8px", "padding": "10px 14px",
+                "marginBottom": "14px",
+            },
+            children=[
+                html.Div(f"Stocks mundiales soja: {señal}", style={
+                    "fontSize": "12px", "fontWeight": "600", "color": color_señal,
+                    "marginBottom": "4px",
+                }),
+                html.Div(desc, style={
+                    "fontSize": "11px", "color": COLORES["texto2"], "lineHeight": "1.5",
+                }),
+            ]
+        ),
+        _stat("Producción global soja",
+              usda.get("produccion_global_mm_tn", "N/D")),
+        _stat("Stocks finales soja",
+              usda.get("stocks_finales_mm_tn", "N/D")),
+        _stat("Ratio stocks/uso",
+              usda.get("ratio_stocks_uso_pct", "N/D"), "%"),
+        _stat("Producción global maíz",
+              usda_maiz.get("produccion_global_mm_tn", "N/D")),
+        html.Div("Fuente: USDA PSD / valores campaña actual", style={
+            "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
+        }),
+    ]
 
 
 # ── Entry point ──────────────────────────────────────────────
