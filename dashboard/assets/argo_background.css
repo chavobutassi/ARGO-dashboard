@@ -1,35 +1,47 @@
 /*
- * ARGO — Fondo profesional dark + grilla de datos
- * Colocar en: dashboard/assets/argo_background.css
+ * ARGO — Fondo profesional dark + grilla de datos v2
+ * dashboard/assets/argo_background.css
  */
 
-/* ── Fondo oscuro con grilla de datos ──────────────────────── */
+/* ── Fondo base en TODOS los contenedores raíz de Dash ──────── */
 
-body, ._dash-loading, #react-entry-point {
+html,
+body,
+#react-entry-point,
+#_dash-app-content,
+._dash-loading-callback,
+.dash-app,
+.container-fluid {
   background-color: #0D1B2A !important;
+  min-height: 100vh;
+}
+
+/* ── Grilla de datos sobre el body ─────────────────────────── */
+
+body {
   background-image:
     linear-gradient(rgba(55,138,221,0.07) 1px, transparent 1px),
     linear-gradient(90deg, rgba(55,138,221,0.07) 1px, transparent 1px),
     linear-gradient(rgba(55,138,221,0.025) 1px, transparent 1px),
     linear-gradient(90deg, rgba(55,138,221,0.025) 1px, transparent 1px) !important;
   background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
-  min-height: 100vh;
+  color: #C8C6C0;
 }
 
-/* Puntos sutiles encima de la grilla */
+/* Puntos sutiles */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: radial-gradient(rgba(55,138,221,0.18) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(55,138,221,0.2) 1px, transparent 1px);
   background-size: 40px 40px;
   background-position: 20px 20px;
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
-/* Resplandor superior izquierdo (azul) */
+/* Resplandor azul superior */
 body::after {
   content: "";
   position: fixed;
@@ -39,79 +51,94 @@ body::after {
   height: 400px;
   z-index: 0;
   pointer-events: none;
-  background: radial-gradient(ellipse, rgba(55,138,221,0.14) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(55,138,221,0.15) 0%, transparent 70%);
 }
 
-/* Contenedor principal sobre el fondo */
-.container-fluid,
-#_dash-app-content,
-.dash-app {
+/* ── Todo sobre el fondo ────────────────────────────────────── */
+
+#react-entry-point > div,
+#_dash-app-content > div {
   position: relative;
   z-index: 1;
+  background-color: transparent !important;
 }
 
-/* ── Solo el body hereda color base — no pisar colores de riesgo ── */
+/* ── Forzar transparencia en todos los div hijos directos ───── */
 
-body {
-  color: #C8C6C0;
+body > div,
+body > div > div {
+  background-color: transparent !important;
 }
+
+/* ── Header: vidrio oscuro ──────────────────────────────────── */
+
+body > div > div:first-child,
+[style*="borderBottom"] {
+  background-color: rgba(10, 20, 35, 0.92) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 0.5px solid rgba(55,138,221,0.25) !important;
+}
+
+/* ── Cards y paneles: glassmorphism ─────────────────────────── */
+
+[style*="borderRadius: \"12px\""],
+[style*="border-radius: 12px"],
+[style*="backgroundColor: \"rgba(255"] {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Forzar glassmorphism en TODOS los divs con borde redondeado */
+div[style*="borderRadius"] {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(55, 138, 221, 0.2) !important;
+}
+
+/* ── Textos ─────────────────────────────────────────────────── */
 
 h1, h2, h3, h4, h5, h6 {
   color: #E8E6E0 !important;
 }
 
-/* ── Cards: glassmorphism sobre fondo oscuro ───────────────── */
-
-.card {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 0.5px solid rgba(55, 138, 221, 0.2) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-radius: 12px !important;
-  color: #E8E6E0 !important;
-}
-
-/* ── Dropdown selector de empresa ──────────────────────────── */
+/* ── Dropdown ───────────────────────────────────────────────── */
 
 .Select-control,
-.Select-menu-outer,
-.VirtualizedSelectOption {
-  background-color: rgba(13, 27, 42, 0.85) !important;
+.Select-menu-outer {
+  background-color: rgba(10, 22, 40, 0.95) !important;
   border-color: rgba(55, 138, 221, 0.3) !important;
-  color: #C8C6C0 !important;
 }
 
 .Select-value-label,
-.Select-placeholder {
+.Select-placeholder,
+.Select-option {
   color: #C8C6C0 !important;
 }
 
-/* ── Barra superior / navbar ───────────────────────────────── */
-
-.navbar, nav {
-  background: rgba(13, 27, 42, 0.9) !important;
-  border-bottom: 0.5px solid rgba(55, 138, 221, 0.2) !important;
-  backdrop-filter: blur(8px);
+.Select-option:hover,
+.Select-option.is-focused {
+  background-color: rgba(55, 138, 221, 0.15) !important;
 }
 
 /* ── Botones ────────────────────────────────────────────────── */
 
 .btn-outline-secondary,
 button[id*="btn"] {
-  background: rgba(55, 138, 221, 0.12) !important;
+  background: rgba(55, 138, 221, 0.1) !important;
   border-color: rgba(55, 138, 221, 0.35) !important;
   color: #8FBFE8 !important;
 }
 
 .btn-outline-secondary:hover,
 button[id*="btn"]:hover {
-  background: rgba(55, 138, 221, 0.22) !important;
+  background: rgba(55, 138, 221, 0.2) !important;
 }
 
-/* ── Gráficos Plotly — fondo transparente ──────────────────── */
+/* ── Plotly transparente ────────────────────────────────────── */
 
 .js-plotly-plot .plotly .bg,
-.plotly-graph-div {
+.plotly-graph-div,
+.dash-graph {
   background: transparent !important;
 }
 
@@ -119,34 +146,19 @@ button[id*="btn"]:hover {
   fill: #8A8880 !important;
 }
 
-/* ── Scrollbar estilizada ───────────────────────────────────── */
+/* ── Scrollbar ──────────────────────────────────────────────── */
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: rgba(255,255,255,0.03);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(55,138,221,0.3);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(55,138,221,0.5);
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb { background: rgba(55,138,221,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(55,138,221,0.5); }
 
 /* ── Separadores ────────────────────────────────────────────── */
 
-hr {
-  border-color: rgba(55, 138, 221, 0.15) !important;
-}
+hr { border-color: rgba(55, 138, 221, 0.15) !important; }
 
 /* ── Responsive ─────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
-  body::after {
-    width: 300px;
-    height: 200px;
-  }
+  body::after { width: 300px; height: 200px; }
 }

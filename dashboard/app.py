@@ -520,6 +520,7 @@ def _fig_spark(scores: list, color: str) -> go.Figure:
 # ── App ─────────────────────────────────────────────────────
 app = dash.Dash(
     __name__,
+    assets_folder=str(Path(__file__).parent / "assets"),
     external_stylesheets=[dbc.themes.BOOTSTRAP],
     title="Argo Estrategias Analiticas — Inteligencia Operacional",
     suppress_callback_exceptions=True,
