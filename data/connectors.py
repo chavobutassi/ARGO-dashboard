@@ -22,6 +22,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 log = logging.getLogger("argo.data")
 
@@ -167,11 +169,13 @@ class ConectorDatos:
             return cached
 
         try:
-            url = "https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/1/1"
+            desde = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            hasta = datetime.now().strftime("%Y-%m-%d")
+            url = f"https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/{desde}/{hasta}"
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS, verify=False)
             resp.raise_for_status()
             resultado = resp.json()
-            valor = resultado["results"][0]["valor"]
+            valor = resultado["results"][-1]["valor"]
 
             datos = {
                 "usd_oficial_ars": float(valor),

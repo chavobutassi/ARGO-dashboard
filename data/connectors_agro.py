@@ -27,6 +27,8 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 log = logging.getLogger("argo.agro")
 
@@ -176,10 +178,12 @@ class ConectorAgro:
             return cached
 
         try:
-            url = "https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/1/1"
+            desde = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            hasta = datetime.now().strftime("%Y-%m-%d")
+            url = f"https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/{desde}/{hasta}"
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS, verify=False)
             resp.raise_for_status()
-            tc_oficial = float(resp.json()["results"][0]["valor"])
+            tc_oficial = float(resp.json()["results"][-1]["valor"])
         except Exception as e:
             log.warning(f"BCRA no disponible ({e})")
             tc_oficial = 1050.0
