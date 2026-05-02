@@ -1,140 +1,232 @@
 /*
- * ARGO — Fondo profesional dark + grilla de datos v2
+ * ARGO — Tema visual dark profesional v3
  * dashboard/assets/argo_background.css
+ *
+ * Principios:
+ *   - Fondo base oscuro pero no negro puro (#0D1B2A)
+ *   - Cards con vidrio sutil — no demasiado transparentes
+ *   - Textos con jerarquía clara: título / cuerpo / secundario
+ *   - Colores de riesgo sin tocar (ARGO los maneja en Python)
+ *   - Grilla de datos visible pero sin competir con el contenido
  */
 
-/* ── Fondo base en TODOS los contenedores raíz de Dash ──────── */
+/* ═══════════════════════════════════════════════════════════
+   BASE — fondo oscuro + grilla
+   ═══════════════════════════════════════════════════════════ */
 
-html,
-body,
+html, body {
+  background-color: #0D1B2A !important;
+  min-height: 100vh;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif !important;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #D4D2CC;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    linear-gradient(rgba(55,138,221,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.06) 1px, transparent 1px),
+    linear-gradient(rgba(55,138,221,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.02) 1px, transparent 1px) !important;
+  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
+}
+
+/* Resplandor superior — sutil, no distrae */
+body::before {
+  content: "";
+  position: fixed;
+  top: -150px; left: 5%;
+  width: 500px; height: 350px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgba(55,138,221,0.12) 0%, transparent 65%);
+}
+
+/* Resplandor inferior derecho — verde agro */
+body::after {
+  content: "";
+  position: fixed;
+  bottom: -100px; right: 5%;
+  width: 400px; height: 300px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse, rgba(99,153,34,0.07) 0%, transparent 70%);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CONTENEDORES — todo sobre el fondo
+   ═══════════════════════════════════════════════════════════ */
+
 #react-entry-point,
 #_dash-app-content,
 ._dash-loading-callback,
 .dash-app,
 .container-fluid {
-  background-color: #0D1B2A !important;
-  min-height: 100vh;
-}
-
-/* ── Grilla de datos sobre el body ─────────────────────────── */
-
-body {
-  background-image:
-    linear-gradient(rgba(55,138,221,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.07) 1px, transparent 1px),
-    linear-gradient(rgba(55,138,221,0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.025) 1px, transparent 1px) !important;
-  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
-  color: #C8C6C0;
-}
-
-/* Puntos sutiles */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(55,138,221,0.2) 1px, transparent 1px);
-  background-size: 40px 40px;
-  background-position: 20px 20px;
-  opacity: 0.3;
-}
-
-/* Resplandor azul superior */
-body::after {
-  content: "";
-  position: fixed;
-  top: -120px;
-  left: 8%;
-  width: 600px;
-  height: 400px;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse, rgba(55,138,221,0.15) 0%, transparent 70%);
-}
-
-/* ── Todo sobre el fondo ────────────────────────────────────── */
-
-#react-entry-point > div,
-#_dash-app-content > div {
+  background-color: transparent !important;
   position: relative;
   z-index: 1;
-  background-color: transparent !important;
 }
 
-/* ── Forzar transparencia en todos los div hijos directos ───── */
+/* Transparencia solo para divs directos del body */
+body > div { background-color: transparent !important; }
 
-body > div,
-body > div > div {
-  background-color: transparent !important;
+/* ═══════════════════════════════════════════════════════════
+   HEADER — barra superior
+   ═══════════════════════════════════════════════════════════ */
+
+body > div > div:first-child {
+  background-color: rgba(8, 16, 28, 0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(55,138,221,0.18) !important;
+  box-shadow: 0 1px 24px rgba(0,0,0,0.3) !important;
 }
 
-/* ── Header: vidrio oscuro ──────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   JERARQUÍA TIPOGRÁFICA
+   ═══════════════════════════════════════════════════════════ */
 
-body > div > div:first-child,
-[style*="borderBottom"] {
-  background-color: rgba(10, 20, 35, 0.92) !important;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 0.5px solid rgba(55,138,221,0.25) !important;
+/* Títulos de sección */
+h1, h2, h3 {
+  color: #ECEAE4 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em;
 }
 
-/* ── Cards y paneles: glassmorphism ─────────────────────────── */
-
-[style*="borderRadius: \"12px\""],
-[style*="border-radius: 12px"],
-[style*="backgroundColor: \"rgba(255"] {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+h4, h5, h6 {
+  color: #D4D2CC !important;
+  font-weight: 500 !important;
 }
 
-/* Forzar glassmorphism en TODOS los divs con borde redondeado */
-div[style*="borderRadius"] {
-  background-color: rgba(255, 255, 255, 0.04) !important;
-  border-color: rgba(55, 138, 221, 0.2) !important;
+/* Labels pequeños (uppercase) — texto secundario claro */
+div[style*="textTransform: uppercase"],
+div[style*="text-transform: uppercase"],
+div[style*="letterSpacing"] {
+  color: #8A9BB0 !important;
 }
 
-/* ── Textos ─────────────────────────────────────────────────── */
-
-h1, h2, h3, h4, h5, h6 {
-  color: #E8E6E0 !important;
+/* Scores y números grandes — blancos puros */
+div[style*="fontSize: \"64px\""],
+div[style*="fontSize: \"52px\""],
+div[style*="fontSize: \"48px\""],
+div[style*="font-size: 64px"],
+div[style*="font-size: 52px"] {
+  color: inherit !important;  /* respetar color de riesgo de Python */
+  text-shadow: 0 0 30px currentColor;
 }
 
-/* ── Dropdown ───────────────────────────────────────────────── */
+/* Texto cuerpo general */
+p, span, label { color: #B8B6B0; }
 
-.Select-control,
+/* Texto secundario */
+div[style*="color: \"#6B6B65\""],
+div[style*="color: \"#8A8880\""] {
+  color: #7A8A9A !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARDS — glassmorphism bien calibrado
+   ═══════════════════════════════════════════════════════════ */
+
+/* NO pisar todos los borderRadius — solo las cards reales */
+.card,
+div[style*="padding: \"20px\""],
+div[style*="padding: \"16px\""] {
+  background-color: rgba(18, 32, 50, 0.85) !important;
+  border: 1px solid rgba(55,138,221,0.14) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.25) !important;
+  color: #D4D2CC !important;
+}
+
+/* Cards de riesgo — preservar colores ARGO */
+div[style*="fondo_critico"],
+div[style*="fondo_alto"],
+div[style*="fondo_medio"],
+div[style*="fondo_bajo"] {
+  backdrop-filter: blur(4px);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DROPDOWN / SELECTOR DE EMPRESA
+   ═══════════════════════════════════════════════════════════ */
+
+.Select-control {
+  background-color: rgba(8, 18, 32, 0.9) !important;
+  border: 1px solid rgba(55,138,221,0.25) !important;
+  border-radius: 8px !important;
+  color: #D4D2CC !important;
+  font-size: 13px !important;
+}
+
+.Select-control:hover {
+  border-color: rgba(55,138,221,0.45) !important;
+}
+
 .Select-menu-outer {
-  background-color: rgba(10, 22, 40, 0.95) !important;
-  border-color: rgba(55, 138, 221, 0.3) !important;
+  background-color: rgba(10, 22, 40, 0.98) !important;
+  border: 1px solid rgba(55,138,221,0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
+  backdrop-filter: blur(16px) !important;
+  margin-top: 4px !important;
 }
 
 .Select-value-label,
-.Select-placeholder,
+.Select-placeholder { color: #C8C6C0 !important; font-size: 13px !important; }
+
 .Select-option {
-  color: #C8C6C0 !important;
+  background-color: transparent !important;
+  color: #B8B6B0 !important;
+  font-size: 13px !important;
+  padding: 10px 14px !important;
 }
 
 .Select-option:hover,
 .Select-option.is-focused {
-  background-color: rgba(55, 138, 221, 0.15) !important;
+  background-color: rgba(55,138,221,0.12) !important;
+  color: #E8E6E0 !important;
 }
 
-/* ── Botones ────────────────────────────────────────────────── */
+.Select-option.is-selected {
+  background-color: rgba(55,138,221,0.2) !important;
+  color: #E8E6E0 !important;
+  font-weight: 500 !important;
+}
+
+.Select-arrow { border-top-color: #7A8A9A !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   BOTONES
+   ═══════════════════════════════════════════════════════════ */
 
 .btn-outline-secondary,
-button[id*="btn"] {
-  background: rgba(55, 138, 221, 0.1) !important;
-  border-color: rgba(55, 138, 221, 0.35) !important;
-  color: #8FBFE8 !important;
+button[id*="btn"],
+button[id*="analizar"] {
+  background: rgba(55,138,221,0.1) !important;
+  border: 1px solid rgba(55,138,221,0.3) !important;
+  color: #7FBCE8 !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
 }
 
 .btn-outline-secondary:hover,
 button[id*="btn"]:hover {
-  background: rgba(55, 138, 221, 0.2) !important;
+  background: rgba(55,138,221,0.2) !important;
+  border-color: rgba(55,138,221,0.5) !important;
+  color: #A8D4F8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(55,138,221,0.2) !important;
 }
 
-/* ── Plotly transparente ────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   GRÁFICOS PLOTLY — fondo transparente
+   ═══════════════════════════════════════════════════════════ */
 
 .js-plotly-plot .plotly .bg,
 .plotly-graph-div,
@@ -142,23 +234,86 @@ button[id*="btn"]:hover {
   background: transparent !important;
 }
 
+/* Ejes y texto de gráficos — legibles pero no dominantes */
 .js-plotly-plot text {
-  fill: #8A8880 !important;
+  fill: #8A9BB0 !important;
+  font-family: "Inter", system-ui, sans-serif !important;
+  font-size: 11px !important;
 }
 
-/* ── Scrollbar ──────────────────────────────────────────────── */
+.js-plotly-plot .gridlayer path {
+  stroke: rgba(55,138,221,0.08) !important;
+}
 
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
-::-webkit-scrollbar-thumb { background: rgba(55,138,221,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(55,138,221,0.5); }
+.js-plotly-plot .zerolinelayer path {
+  stroke: rgba(55,138,221,0.15) !important;
+}
 
-/* ── Separadores ────────────────────────────────────────────── */
+/* Tooltips de Plotly */
+.hoverlayer .hovertext rect {
+  fill: rgba(8, 18, 32, 0.95) !important;
+  stroke: rgba(55,138,221,0.3) !important;
+}
+.hoverlayer .hovertext text {
+  fill: #E8E6E0 !important;
+}
 
-hr { border-color: rgba(55, 138, 221, 0.15) !important; }
+/* ═══════════════════════════════════════════════════════════
+   BADGES Y ALERTAS — preservar colores de riesgo ARGO
+   ═══════════════════════════════════════════════════════════ */
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* Brillar sutilmente los badges de nivel */
+div[style*="#E24B4A"],  /* CRÍTICO */
+span[style*="#E24B4A"] { text-shadow: 0 0 12px rgba(226,75,74,0.4); }
+
+div[style*="#D85A30"],  /* ALTO */
+span[style*="#D85A30"] { text-shadow: 0 0 12px rgba(216,90,48,0.35); }
+
+div[style*="#639922"],  /* BAJO */
+span[style*="#639922"] { text-shadow: 0 0 12px rgba(99,153,34,0.35); }
+
+/* ═══════════════════════════════════════════════════════════
+   SEPARADORES Y BORDES
+   ═══════════════════════════════════════════════════════════ */
+
+hr {
+  border: none !important;
+  border-top: 1px solid rgba(55,138,221,0.12) !important;
+  margin: 12px 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLLBAR — discreta, con color ARGO
+   ═══════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(55,138,221,0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(55,138,221,0.45); }
+
+/* ═══════════════════════════════════════════════════════════
+   LOADING STATE — cuando Dash está cargando
+   ═══════════════════════════════════════════════════════════ */
+
+._dash-loading {
+  background-color: #0D1B2A !important;
+}
+
+._dash-loading-callback {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+  body { font-size: 13px; }
+  body::before { width: 300px; height: 200px; }
+}
 
 @media (max-width: 768px) {
-  body::after { width: 300px; height: 200px; }
+  body { font-size: 12px; }
+  body::before, body::after { display: none; }
 }
