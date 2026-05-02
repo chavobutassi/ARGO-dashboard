@@ -70,15 +70,6 @@ except (ImportError, SyntaxError) as _e:
     else:
         print("[Argo] Aviso: connectors.py no encontrado en data/ — usando lecturas_default.")
 
-try:
-    from data.connectors_global import ConectorGlobal
-    _conector_global: "ConectorGlobal | None" = ConectorGlobal()
-    GLOBAL_DISPONIBLE = True
-except (ImportError, Exception) as _e:
-    GLOBAL_DISPONIBLE = False
-    _conector_global = None
-    print(f"[Argo] Aviso: connectors_global.py no disponible — panel global desactivado. ({_e})")
-
 
 # ── Paleta Argo ────────────────────────────────────────────
 COLORES = {
@@ -313,6 +304,9 @@ EMPRESAS: dict = {
     },
 }
 
+# ── Solo empresas agro en el selector ───────────────────────
+EMPRESAS_AGRO_IDS = {"agro", "aca_agro"}
+
 # Pre-cargar configs para acceso rápido en callbacks
 for _key, _emp in EMPRESAS.items():
     try:
@@ -320,6 +314,39 @@ for _key, _emp in EMPRESAS.items():
             _emp["config_data"] = json.load(_f)
     except Exception:
         _emp["config_data"] = {}
+
+# ── Zonas agrícolas de Argentina para el mapa ────────────────
+ZONAS_AGRO_MAPA = [
+    {"nombre": "Pampa Húmeda Norte",  "lat": -33.0, "lon": -61.0,
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 14000, "color": "#639922", "size": 22},
+    {"nombre": "Pampa Húmeda Centro", "lat": -35.0, "lon": -62.0,
+     "cultivo": "Soja/Maíz", "aptitud": "Alta", "flete_ars_tn": 16000, "color": "#639922", "size": 22},
+    {"nombre": "Santa Fe Centro",     "lat": -31.5, "lon": -61.5,
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 12000, "color": "#639922", "size": 20},
+    {"nombre": "Entre Ríos",          "lat": -32.0, "lon": -58.5,
+     "cultivo": "Soja/Trigo", "aptitud": "Alta", "flete_ars_tn": 18000, "color": "#639922", "size": 18},
+    {"nombre": "Córdoba Sur",         "lat": -33.5, "lon": -63.5,
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 20000, "color": "#639922", "size": 20},
+    {"nombre": "Córdoba Norte",       "lat": -30.5, "lon": -63.5,
+     "cultivo": "Maíz",  "aptitud": "Media", "flete_ars_tn": 24000, "color": "#BA7517", "size": 16},
+    {"nombre": "Buenos Aires Norte",  "lat": -35.0, "lon": -60.0,
+     "cultivo": "Trigo/Soja", "aptitud": "Alta", "flete_ars_tn": 15000, "color": "#639922", "size": 18},
+    {"nombre": "Buenos Aires Sur",    "lat": -38.0, "lon": -60.5,
+     "cultivo": "Trigo/Girasol", "aptitud": "Media", "flete_ars_tn": 22000, "color": "#BA7517", "size": 16},
+    {"nombre": "La Pampa Este",       "lat": -36.5, "lon": -64.5,
+     "cultivo": "Trigo",  "aptitud": "Media", "flete_ars_tn": 26000, "color": "#BA7517", "size": 14},
+    {"nombre": "La Pampa Oeste",      "lat": -37.5, "lon": -67.0,
+     "cultivo": "Ganadería", "aptitud": "Baja", "flete_ars_tn": 32000, "color": "#D85A30", "size": 12},
+    {"nombre": "Chaco",               "lat": -27.0, "lon": -61.0,
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 34000, "color": "#BA7517", "size": 14},
+    {"nombre": "Santiago del Estero", "lat": -28.0, "lon": -63.5,
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 30000, "color": "#BA7517", "size": 14},
+    {"nombre": "Tucumán",             "lat": -27.0, "lon": -65.5,
+     "cultivo": "Soja/Caña", "aptitud": "Media", "flete_ars_tn": 32000, "color": "#BA7517", "size": 13},
+    {"nombre": "Puerto Rosario ⚓",   "lat": -32.95, "lon": -60.64,
+     "cultivo": "Destino exportación", "aptitud": "—", "flete_ars_tn": 0,
+     "color": "#378ADD", "size": 18},
+]
 
 
 # ── Métricas bullet por sector ──────────────────────────────
@@ -593,8 +620,9 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="empresa-selector",
                             options=[{"label": v["label"], "value": k}
-                                     for k, v in EMPRESAS.items()],
-                            value="transportadora",
+                                     for k, v in EMPRESAS.items()
+                                     if k in EMPRESAS_AGRO_IDS],
+                            value="agro",
                             clearable=False,
                             style={"width": "300px", "fontSize": "13px"},
                         ),
@@ -620,55 +648,6 @@ app.layout = html.Div(
 
         # ── Contenido principal ──────────────────────────────
         html.Div(style={"padding": "20px 28px"}, children=[
-
-            # ═══════════════════════════════════════════════════
-            # ZONA GLOBAL — Contexto mundial agropecuario
-            # Siempre visible, independiente de la empresa
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                style={"display": "flex", "alignItems": "center",
-                       "gap": "12px", "marginBottom": "12px"},
-                children=[
-                    html.Div(style={
-                        "width": "4px", "height": "18px",
-                        "backgroundColor": COLORES["azul"], "borderRadius": "2px",
-                    }),
-                    html.Div("Contexto Global — Mercados mundiales", style={
-                        "fontSize": "11px", "fontWeight": "500",
-                        "color": COLORES["texto2"], "textTransform": "uppercase",
-                        "letterSpacing": "0.08em",
-                    }),
-                    html.Div(id="global-timestamp", style={
-                        "fontSize": "10px", "color": COLORES["texto2"],
-                    }),
-                ],
-            ),
-            # Fila superior: precios CBOT + señales
-            html.Div(
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "1fr 1fr",
-                    "gap": "14px",
-                    "marginBottom": "14px",
-                },
-                children=[
-                    html.Div(id="panel-global-precios",  style=_card()),
-                    html.Div(id="panel-global-señales",  style=_card()),
-                ],
-            ),
-            # Fila inferior: ranking productores + stocks USDA
-            html.Div(
-                style={
-                    "display": "grid",
-                    "gridTemplateColumns": "1fr 1fr",
-                    "gap": "14px",
-                    "marginBottom": "28px",
-                },
-                children=[
-                    html.Div(id="panel-global-ranking", style=_card()),
-                    html.Div(id="panel-global-usda",    style=_card()),
-                ],
-            ),
 
             # ═══════════════════════════════════════════════════
             # ZONA 1 — OPERADOR   ¿Hay algo urgente ahora?
@@ -1560,129 +1539,115 @@ def actualizar_datasource_badge(ds):
     )]
 
 
-# ── Z1. Mapa geográfico compacto ─────────────────────────────
+# ── Z1. Mapa agropecuario por zonas ─────────────────────────
 @app.callback(
     Output("panel-mapa", "children"),
     Input("store-sitrep", "data"),
+    State("empresa-selector", "value"),
 )
-def actualizar_mapa(data):
-    if not data:
-        return []
-
-    empresa  = data.get("empresa", "")
-    nivel    = data.get("nivel_global", "BAJO")
-    score    = int(data.get("score_global", 0) * 100)
-
-    # Actualizar riesgo de la provincia activa con el score real
-    prov_riesgo = dict(PROV_RIESGO_BASE)
-    coords = EMPRESA_COORDS.get(empresa)
-    if coords:
-        prov_riesgo[coords[2]] = (nivel, score)
-
-    geojson = _cargar_geojson_provincias()
+def actualizar_mapa(data, empresa_id):
     fig = go.Figure()
 
-    # ── Modo choropleth (con GeoJSON disponible) ──
-    if geojson.get("features"):
-        names = [f["properties"]["nombre"] for f in geojson["features"]]
-        z_vals = [prov_riesgo.get(n, (None, 0))[1] for n in names]
-        hover  = [
-            f"<b>{n}</b><br>Score: {prov_riesgo[n][1]}/100 — {prov_riesgo[n][0]}"
-            if n in prov_riesgo else f"<b>{n}</b><br>Sin empresa monitoreada"
-            for n in names
-        ]
-        line_colors = [COLORES.get(prov_riesgo[n][0], COLORES["borde"])
-                       if n in prov_riesgo else COLORES["borde"] for n in names]
+    lats     = [z["lat"]     for z in ZONAS_AGRO_MAPA]
+    lons     = [z["lon"]     for z in ZONAS_AGRO_MAPA]
+    colores  = [z["color"]   for z in ZONAS_AGRO_MAPA]
+    sizes    = [z["size"]    for z in ZONAS_AGRO_MAPA]
+    textos   = [
+        f"<b>{z['nombre']}</b><br>"
+        f"Cultivo: {z['cultivo']}<br>"
+        f"Aptitud: {z['aptitud']}<br>"
+        + (f"Flete a Rosario: ${z['flete_ars_tn']:,}/tn" if z['flete_ars_tn'] > 0 else "Puerto de referencia")
+        for z in ZONAS_AGRO_MAPA
+    ]
 
-        fig.add_trace(go.Choroplethmapbox(
-            geojson=geojson,
-            locations=names,
-            featureidkey="properties.nombre",
-            z=z_vals,
-            colorscale=[
-                [0.0,  "#F1EFE8"],
-                [0.3,  "#EAF3DE"],
-                [0.55, "#FAEEDA"],
-                [0.75, "#FAECE7"],
-                [1.0,  "#FCEBEB"],
-            ],
-            zmin=0, zmax=100,
-            showscale=False,
-            hovertext=hover,
-            hoverinfo="text",
-            marker={"line": {"color": line_colors, "width": 0.8}},
-        ))
+    # Empresa activa
+    emp = EMPRESAS.get(empresa_id, {})
+    emp_lat = emp.get("lat")
+    emp_lon = emp.get("lon")
+    emp_label = emp.get("label", "")
 
-        # Marcadores de empresas
-        lats = [v[0] for v in EMPRESA_COORDS.values()]
-        lons = [v[1] for v in EMPRESA_COORDS.values()]
-        nombres = list(EMPRESA_COORDS.keys())
-        sizes   = [18 if n == empresa else 10 for n in nombres]
-        opacities = [0.95 if n == empresa else 0.6 for n in nombres]
-        colors  = [COLORES[prov_riesgo.get(v[2], ("BAJO",0))[0]]
-                   for v in EMPRESA_COORDS.values()]
+    # Zonas
+    fig.add_trace(go.Scattermapbox(
+        lat=lats, lon=lons,
+        mode="markers",
+        marker=dict(size=sizes, color=colores, opacity=0.82),
+        hovertext=textos,
+        hoverinfo="text",
+        name="Zonas",
+    ))
 
+    # Empresa activa destacada
+    if emp_lat and emp_lon:
         fig.add_trace(go.Scattermapbox(
-            lat=lats, lon=lons,
-            mode="markers",
-            marker=dict(size=sizes, color=colors, opacity=opacities),
-            hovertext=[f"<b>{n}</b><br>{EMPRESA_COORDS[n][2]}" for n in nombres],
+            lat=[emp_lat], lon=[emp_lon],
+            mode="markers+text",
+            marker=dict(size=16, color="#378ADD",
+                        symbol="star"),
+            text=[emp_label.split()[0]],
+            textposition="top right",
+            textfont=dict(size=10, color="#378ADD"),
+            hovertext=[f"<b>{emp_label}</b>"],
             hoverinfo="text",
+            name="Empresa",
         ))
 
-        fig.update_layout(
-            mapbox=dict(style="open-street-map",
-                        center=dict(lat=-38, lon=-64), zoom=2.6),
-            margin=dict(l=0, r=0, t=0, b=0),
-            height=230,
-            paper_bgcolor="rgba(0,0,0,0)",
-            showlegend=False,
-            hoverlabel=dict(bgcolor="#fff", bordercolor=COLORES["borde"],
-                           font=dict(size=11, family="system-ui")),
-        )
+    fig.update_layout(
+        mapbox=dict(
+            style="open-street-map",
+            center=dict(lat=-33.5, lon=-62.0),
+            zoom=3.8,
+        ),
+        margin=dict(l=0, r=0, t=0, b=0),
+        height=230,
+        paper_bgcolor="rgba(0,0,0,0)",
+        showlegend=False,
+        hoverlabel=dict(bgcolor="#0D1B2A", bordercolor=COLORES["borde"],
+                        font=dict(size=11, color="#E8E6E0", family="system-ui")),
+    )
 
-    # ── Modo fallback scattergeo (sin GeoJSON) ──
-    else:
-        lats    = [v[0] for v in EMPRESA_COORDS.values()]
-        lons    = [v[1] for v in EMPRESA_COORDS.values()]
-        nombres = list(EMPRESA_COORDS.keys())
-        sizes   = [22 if n == empresa else 12 for n in nombres]
-        colors  = [COLORES[prov_riesgo.get(v[2], ("BAJO",0))[0]]
-                   for v in EMPRESA_COORDS.values()]
+    # Leyenda compacta
+    leyenda = html.Div(
+        style={"display": "flex", "gap": "12px", "marginTop": "6px",
+               "flexWrap": "wrap"},
+        children=[
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                     children=[
+                         html.Div(style={"width": "8px", "height": "8px",
+                                         "borderRadius": "50%", "backgroundColor": "#639922"}),
+                         html.Div("Alta aptitud", style={"fontSize": "10px",
+                                                          "color": COLORES["texto2"]}),
+                     ]),
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                     children=[
+                         html.Div(style={"width": "8px", "height": "8px",
+                                         "borderRadius": "50%", "backgroundColor": "#BA7517"}),
+                         html.Div("Media aptitud", style={"fontSize": "10px",
+                                                           "color": COLORES["texto2"]}),
+                     ]),
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                     children=[
+                         html.Div(style={"width": "8px", "height": "8px",
+                                         "borderRadius": "50%", "backgroundColor": "#D85A30"}),
+                         html.Div("Baja aptitud", style={"fontSize": "10px",
+                                                          "color": COLORES["texto2"]}),
+                     ]),
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
+                     children=[
+                         html.Div(style={"width": "8px", "height": "8px",
+                                         "borderRadius": "50%", "backgroundColor": "#378ADD"}),
+                         html.Div("Puerto Rosario", style={"fontSize": "10px",
+                                                            "color": COLORES["texto2"]}),
+                     ]),
+        ]
+    )
 
-        fig.add_trace(go.Scattergeo(
-            lat=lats, lon=lons,
-            mode="markers",
-            marker=dict(size=sizes, color=colors, opacity=0.85,
-                        line=dict(color="#fff", width=1)),
-            hovertext=[f"<b>{n}</b>" for n in nombres],
-            hoverinfo="text",
-        ))
-        fig.update_layout(
-            geo=dict(
-                scope="south america",
-                resolution=50,
-                showland=True, landcolor="#0D1B2A",
-                showsubunits=True, subunitcolor="#E5E4DC", subunitwidth=0.5,
-                showcountries=True, countrycolor="#C5C3BB",
-                showocean=True, oceancolor="#0A1520",
-                showcoastlines=True, coastlinecolor="#B4B2A9",
-                lataxis_range=[-55, -21],
-                lonaxis_range=[-73, -53],
-            ),
-            margin=dict(l=0, r=0, t=0, b=0),
-            height=230,
-            paper_bgcolor="rgba(0,0,0,0)",
-            showlegend=False,
-        )
-
-    label = html.Div("Cobertura geográfica", style={
+    label = html.Div("Zonas agrícolas · aptitud de suelo · flete a Rosario", style={
         "fontSize": "10px", "fontWeight": "500",
         "color": COLORES["texto2"], "textTransform": "uppercase",
         "letterSpacing": "0.08em", "marginBottom": "4px",
     })
 
-    return [label, dcc.Graph(figure=fig, config={"displayModeBar": False})]
+    return [label, dcc.Graph(figure=fig, config={"displayModeBar": False}), leyenda]
 
 
 # ── Z1. Score grande ────────────────────────────────────────
@@ -1815,273 +1780,6 @@ def toggle_zona3(n_clicks):
     estilo = {"display": "block"} if abierta else {"display": "none"}
     texto  = "▲  Ocultar análisis" if abierta else "▼  Ver análisis completo"
     return estilo, texto
-
-
-# ── Global. Precios CBOT ────────────────────────────────────
-@app.callback(
-    Output("panel-global-precios", "children"),
-    Output("global-timestamp",     "children"),
-    Input("auto-refresh",          "n_intervals"),
-    Input("btn-analizar",          "n_clicks"),
-)
-def actualizar_global_precios(_intervals, _clicks):
-    if not GLOBAL_DISPONIBLE:
-        return [_lbl("Precios globales"), html.Div("No disponible",
-                style={"fontSize": "12px", "color": COLORES["texto2"]})], ""
-
-    try:
-        precios = _conector_global.precios_globales_cbot()
-    except Exception as e:
-        log.warning(f"Panel global precios error: {e}")
-        return [], ""
-
-    ts = precios.get("timestamp", "")
-    try:
-        ts_fmt = datetime.fromisoformat(ts).strftime("%H:%M")
-        ts_label = f"Actualizado {ts_fmt}"
-    except Exception:
-        ts_label = ""
-
-    granos = [
-        ("soja",  "Soja"),
-        ("maiz",  "Maíz"),
-        ("trigo", "Trigo"),
-        ("wti",   "Petróleo WTI"),
-        ("brent", "Petróleo Brent"),
-    ]
-
-    filas = []
-    for clave, nombre in granos:
-        p = precios.get(clave)
-        if not p:
-            continue
-        filas.append(html.Div(
-            style={
-                "display": "flex", "alignItems": "center",
-                "justifyContent": "space-between",
-                "padding": "8px 0",
-                "borderBottom": f"0.5px solid {COLORES['borde']}",
-            },
-            children=[
-                html.Div(nombre, style={"fontSize": "12px", "color": COLORES["texto"],
-                                        "fontWeight": "500"}),
-                html.Div(style={"display": "flex", "alignItems": "center", "gap": "10px"},
-                         children=[
-                     html.Div(f"USD {p['precio']:,.2f}", style={
-                         "fontSize": "13px", "fontWeight": "600",
-                         "color": COLORES["texto"],
-                     }),
-                     html.Div(
-                         f"{p['tendencia']} {p['cambio_pct']:+.1f}%",
-                         style={"fontSize": "11px", "fontWeight": "500",
-                                "color": p["color"], "minWidth": "60px",
-                                "textAlign": "right"},
-                     ),
-                 ]),
-            ]
-        ))
-
-    return [
-        _lbl("Precios CBOT Chicago — tiempo real"),
-        *filas,
-        html.Div("Fuente: Yahoo Finance / CBOT", style={
-            "fontSize": "10px", "color": COLORES["texto2"],
-            "marginTop": "10px",
-        }),
-    ], ts_label
-
-
-# ── Global. Señales de mercado ───────────────────────────────
-@app.callback(
-    Output("panel-global-señales", "children"),
-    Input("auto-refresh",          "n_intervals"),
-    Input("btn-analizar",          "n_clicks"),
-)
-def actualizar_global_señales(_intervals, _clicks):
-    if not GLOBAL_DISPONIBLE:
-        return []
-    try:
-        señales = _conector_global.señales_mercado_mundial()
-    except Exception as e:
-        log.warning(f"Panel global señales error: {e}")
-        return []
-
-    if not señales:
-        return [_lbl("Señales de mercado mundial"),
-                html.Div("Sin señales relevantes en este momento.",
-                         style={"fontSize": "12px", "color": COLORES["texto2"]})]
-
-    impacto_color = {
-        "ALTO":  COLORES["CRITICO"],
-        "MEDIO": COLORES["MEDIO"],
-        "BAJO":  COLORES["BAJO"],
-    }
-
-    items = []
-    for s in señales[:5]:
-        color = s.get("color", COLORES["azul"])
-        badge_color = impacto_color.get(s.get("impacto", "MEDIO"), COLORES["MEDIO"])
-        items.append(html.Div(
-            style={
-                "padding": "10px 0",
-                "borderBottom": f"0.5px solid {COLORES['borde']}",
-            },
-            children=[
-                html.Div(
-                    style={"display": "flex", "alignItems": "center",
-                           "gap": "8px", "marginBottom": "4px"},
-                    children=[
-                        html.Div(style={
-                            "width": "8px", "height": "8px",
-                            "borderRadius": "50%", "backgroundColor": color,
-                            "flexShrink": "0",
-                        }),
-                        html.Div(s["titulo"], style={
-                            "fontSize": "12px", "fontWeight": "600",
-                            "color": COLORES["texto"], "flex": "1",
-                        }),
-                        html.Div(s.get("impacto", ""), style={
-                            "fontSize": "9px", "fontWeight": "500",
-                            "color": badge_color,
-                            "border": f"0.5px solid {badge_color}",
-                            "borderRadius": "4px", "padding": "1px 6px",
-                        }),
-                    ]
-                ),
-                html.Div(s["descripcion"], style={
-                    "fontSize": "11px", "color": COLORES["texto2"],
-                    "lineHeight": "1.5", "paddingLeft": "16px",
-                }),
-            ]
-        ))
-
-    return [_lbl("Señales de mercado mundial"), *items]
-
-
-# ── Global. Ranking productores ──────────────────────────────
-@app.callback(
-    Output("panel-global-ranking", "children"),
-    Input("auto-refresh",          "n_intervals"),
-)
-def actualizar_global_ranking(_intervals):
-    if not GLOBAL_DISPONIBLE:
-        return []
-    try:
-        ranking = _conector_global.ranking_productores("soja")
-    except Exception as e:
-        log.warning(f"Panel ranking error: {e}")
-        return []
-
-    filas = []
-    for r in ranking[:10]:
-        es_arg = r.get("es_argentina", False)
-        filas.append(html.Div(
-            style={
-                "display": "flex", "alignItems": "center", "gap": "10px",
-                "padding": "7px 8px", "borderRadius": "6px",
-                "marginBottom": "3px",
-                "backgroundColor": COLORES["fondo_bajo"] if es_arg else COLORES["fondo"],
-            },
-            children=[
-                html.Div(f"#{r['posicion']}", style={
-                    "fontSize": "11px", "fontWeight": "600",
-                    "color": COLORES["BAJO"] if es_arg else COLORES["texto2"],
-                    "minWidth": "24px",
-                }),
-                html.Div(r["pais"], style={
-                    "fontSize": "12px", "flex": "1",
-                    "color": COLORES["BAJO"] if es_arg else COLORES["texto"],
-                    "fontWeight": "600" if es_arg else "400",
-                }),
-                html.Div(f"{r['produccion_mm']} MM tn", style={
-                    "fontSize": "11px", "color": COLORES["texto2"],
-                    "minWidth": "80px", "textAlign": "right",
-                }),
-                html.Div(f"{r['pct_global']}%", style={
-                    "fontSize": "11px", "fontWeight": "500",
-                    "color": COLORES["BAJO"] if es_arg else COLORES["texto2"],
-                    "minWidth": "40px", "textAlign": "right",
-                }),
-            ]
-        ))
-
-    return [
-        _lbl("Top 10 productores mundiales — Soja"),
-        *filas,
-        html.Div("Fuente: FAO / datos campaña 2022-23", style={
-            "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
-        }),
-    ]
-
-
-# ── Global. USDA stocks ──────────────────────────────────────
-@app.callback(
-    Output("panel-global-usda", "children"),
-    Input("auto-refresh",       "n_intervals"),
-)
-def actualizar_global_usda(_intervals):
-    if not GLOBAL_DISPONIBLE:
-        return []
-    try:
-        usda = _conector_global.oferta_demanda_usda("soja")
-        usda_maiz = _conector_global.oferta_demanda_usda("maiz")
-    except Exception as e:
-        log.warning(f"Panel USDA error: {e}")
-        return []
-
-    color_señal = usda.get("señal_color", COLORES["MEDIO"])
-    señal       = usda.get("señal_stocks", "N/D")
-    desc        = usda.get("señal_desc", "")
-
-    def _stat(label, valor, unidad="MM tn"):
-        return html.Div(
-            style={
-                "display": "flex", "justifyContent": "space-between",
-                "alignItems": "center", "padding": "7px 0",
-                "borderBottom": f"0.5px solid {COLORES['borde']}",
-            },
-            children=[
-                html.Div(label, style={"fontSize": "12px", "color": COLORES["texto2"]}),
-                html.Div(f"{valor} {unidad}" if valor != "N/D" else "N/D",
-                         style={"fontSize": "12px", "fontWeight": "600",
-                                "color": COLORES["texto"]}),
-            ]
-        )
-
-    return [
-        _lbl("Oferta y demanda mundial — Soja / Maíz"),
-        # Badge señal
-        html.Div(
-            style={
-                "backgroundColor": usda.get("señal_color", COLORES["fondo_medio"])
-                                      .replace(")", ", 0.15)").replace("rgb", "rgba")
-                                   if "rgb" in usda.get("señal_color","") else COLORES["fondo_medio"],
-                "border": f"1px solid {color_señal}",
-                "borderRadius": "8px", "padding": "10px 14px",
-                "marginBottom": "14px",
-            },
-            children=[
-                html.Div(f"Stocks mundiales soja: {señal}", style={
-                    "fontSize": "12px", "fontWeight": "600", "color": color_señal,
-                    "marginBottom": "4px",
-                }),
-                html.Div(desc, style={
-                    "fontSize": "11px", "color": COLORES["texto2"], "lineHeight": "1.5",
-                }),
-            ]
-        ),
-        _stat("Producción global soja",
-              usda.get("produccion_global_mm_tn", "N/D")),
-        _stat("Stocks finales soja",
-              usda.get("stocks_finales_mm_tn", "N/D")),
-        _stat("Ratio stocks/uso",
-              usda.get("ratio_stocks_uso_pct", "N/D"), "%"),
-        _stat("Producción global maíz",
-              usda_maiz.get("produccion_global_mm_tn", "N/D")),
-        html.Div("Fuente: USDA PSD / valores campaña actual", style={
-            "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
-        }),
-    ]
 
 
 # ── Entry point ──────────────────────────────────────────────
