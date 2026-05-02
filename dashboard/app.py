@@ -70,6 +70,15 @@ except (ImportError, SyntaxError) as _e:
     else:
         print("[Argo] Aviso: connectors.py no encontrado en data/ — usando lecturas_default.")
 
+try:
+    from data.connectors_agro import ConectorAgro, ZONAS_AGRO
+    _conector_agro: "ConectorAgro | None" = ConectorAgro()
+    AGRO_DISPONIBLE = True
+except (ImportError, Exception) as _e:
+    AGRO_DISPONIBLE = False
+    _conector_agro = None
+    print(f"[Argo] Aviso: connectors_agro.py no disponible — panel agro desactivado. ({_e})")
+
 
 # ── Paleta Argo ────────────────────────────────────────────
 COLORES = {
@@ -718,6 +727,35 @@ app.layout = html.Div(
                     html.Div(id="panel-pareto",          style=_card()),
                     html.Div(id="panel-leading-lagging", style=_card()),
                     html.Div(id="panel-bullet",          style=_card()),
+                ],
+            ),
+
+            # ═══════════════════════════════════════════════════
+            # ZONA AGRO — Decisión de venta agropecuaria
+            # Solo visible para empresas del sector agro
+            # ═══════════════════════════════════════════════════
+            html.Div(
+                id="zona-agro-wrapper",
+                style={"marginBottom": "14px"},
+                children=[
+                    html.Div(
+                        style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "12px", "marginBottom": "12px",
+                        },
+                        children=[
+                            html.Div(style={
+                                "width": "4px", "height": "18px",
+                                "backgroundColor": COLORES["BAJO"], "borderRadius": "2px",
+                            }),
+                            html.Div("Zona Agro — Decisión de venta", style={
+                                "fontSize": "11px", "fontWeight": "500",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ],
+                    ),
+                    html.Div(id="panel-agro-decision", style=_card()),
                 ],
             ),
 
@@ -1780,6 +1818,200 @@ def toggle_zona3(n_clicks):
     estilo = {"display": "block"} if abierta else {"display": "none"}
     texto  = "▲  Ocultar análisis" if abierta else "▼  Ver análisis completo"
     return estilo, texto
+
+
+# ── Agro. Panel de decisión de venta ────────────────────────
+@app.callback(
+    Output("panel-agro-decision",  "children"),
+    Output("zona-agro-wrapper",    "style"),
+    Input("empresa-selector",      "value"),
+    Input("store-sitrep",          "data"),
+)
+def actualizar_panel_agro(empresa_id, _sitrep):
+    EMPRESAS_AGRO = {"agro", "aca_agro"}
+    oculto  = {"display": "none"}
+    visible = {"marginBottom": "14px"}
+
+    if empresa_id not in EMPRESAS_AGRO or not AGRO_DISPONIBLE:
+        return [], oculto
+
+    empresa = EMPRESAS.get(empresa_id, {})
+    lat = empresa.get("lat", -33.0)
+    lon = empresa.get("lon", -63.0)
+
+    zona = "pampa_humeda"
+    lugar = empresa.get("lugar", "").lower()
+    if "pampa" in lugar:
+        zona = "la_pampa"
+    elif "santa fe" in lugar or "rosario" in lugar:
+        zona = "santa_fe_centro"
+    elif "córdoba" in lugar or "cordoba" in lugar:
+        zona = "cordoba_sur"
+    elif "entre ríos" in lugar or "entre rios" in lugar:
+        zona = "entre_rios"
+
+    try:
+        snap     = _conector_agro.snapshot_agro(lat, lon, zona)
+        decision = _conector_agro.score_decision_venta(snap, grano="soja", zona=zona)
+    except Exception as e:
+        log.warning(f"Panel agro error: {e}")
+        return [_lbl("Decisión agropecuaria"),
+                html.Div("Datos no disponibles temporalmente.",
+                         style={"fontSize": "12px", "color": COLORES["texto2"]})], visible
+
+    score         = decision["score"]
+    recomendacion = decision["recomendacion"]
+    descripcion   = decision["descripcion"]
+    factores      = decision["factores"]
+    clima         = snap.get("clima", {})
+    precios       = snap.get("precios", {})
+    tc            = snap.get("tipo_cambio", {})
+    logistica     = snap.get("logistica", {})
+
+    color_rec = {"VENDER": COLORES["BAJO"], "ESPERAR": COLORES["MEDIO"],
+                 "ATENCION": COLORES["CRITICO"]}.get(recomendacion, COLORES["MEDIO"])
+    fondo_rec = {"VENDER": COLORES["fondo_bajo"], "ESPERAR": COLORES["fondo_medio"],
+                 "ATENCION": COLORES["fondo_critico"]}.get(recomendacion, COLORES["fondo_medio"])
+
+    # ── Cabecera: score + badge ──────────────────────────────
+    header = html.Div(
+        style={"display": "flex", "alignItems": "flex-start",
+               "justifyContent": "space-between", "marginBottom": "14px"},
+        children=[
+            html.Div([
+                _lbl("Decisión de venta — Soja"),
+                html.Div(style={"display": "flex", "alignItems": "baseline", "gap": "6px"},
+                         children=[
+                             html.Div(str(score), style={
+                                 "fontSize": "52px", "fontWeight": "600",
+                                 "color": color_rec, "lineHeight": "1",
+                             }),
+                             html.Div("/100", style={"fontSize": "13px",
+                                                     "color": COLORES["texto2"]}),
+                         ]),
+                html.Div(style={
+                    "height": "5px", "borderRadius": "3px",
+                    "backgroundColor": COLORES["borde"], "margin": "10px 0",
+                }, children=[
+                    html.Div(style={"width": f"{score}%", "height": "100%",
+                                    "borderRadius": "3px", "backgroundColor": color_rec})
+                ]),
+            ]),
+            html.Div(recomendacion, style={
+                "backgroundColor": fondo_rec, "color": color_rec,
+                "fontSize": "13px", "fontWeight": "600",
+                "padding": "8px 18px", "borderRadius": "8px",
+                "letterSpacing": "0.06em",
+                "border": f"1px solid {color_rec}",
+                "alignSelf": "flex-start",
+            }),
+        ]
+    )
+
+    # ── Descripción ──────────────────────────────────────────
+    desc_div = html.Div(descripcion, style={
+        "fontSize": "12px", "color": COLORES["texto2"],
+        "lineHeight": "1.6", "marginBottom": "16px",
+        "borderLeft": f"2px solid {color_rec}", "paddingLeft": "10px",
+    })
+
+    # ── KPIs rápidos ─────────────────────────────────────────
+    soja_usd = precios.get("soja_rosario_usd_tn", "N/D")
+    tc_val   = tc.get("usd_oficial_ars", "N/D")
+    lluvia   = clima.get("lluvia_acumulada_7d_mm", "N/D")
+    heladas  = clima.get("dias_helada_7d", 0)
+    ventana  = clima.get("ventana_cosecha_ok", False)
+    gasoil   = logistica.get("gasoil_ars_litro", "N/D")
+
+    def _kpi(label, valor, color=None):
+        return html.Div(style={
+            "backgroundColor": COLORES["fondo"], "borderRadius": "8px",
+            "padding": "10px 12px", "flex": "1",
+        }, children=[
+            html.Div(label, style={
+                "fontSize": "10px", "color": COLORES["texto2"],
+                "textTransform": "uppercase", "letterSpacing": "0.05em",
+                "marginBottom": "4px",
+            }),
+            html.Div(str(valor), style={
+                "fontSize": "15px", "fontWeight": "600",
+                "color": color or COLORES["texto"],
+            }),
+        ])
+
+    kpis = html.Div(style={"display": "flex", "gap": "8px", "marginBottom": "16px",
+                            "flexWrap": "wrap"}, children=[
+        _kpi("Soja Rosario",    f"USD {soja_usd}/tn"),
+        _kpi("USD Oficial",     f"${tc_val}"),
+        _kpi("Lluvia 7d",       f"{lluvia} mm"),
+        _kpi("Gasoil",          f"${gasoil}/L"),
+        _kpi("Ventana cosecha",
+             "Abierta" if ventana else "Cerrada",
+             COLORES["BAJO"] if ventana else COLORES["CRITICO"]),
+        _kpi("Heladas 7d",
+             f"{heladas} días",
+             COLORES["CRITICO"] if heladas > 0 else COLORES["BAJO"]),
+    ])
+
+    # ── Factores detallados ──────────────────────────────────
+    def _fila_factor(f):
+        pts_str = f.get("puntos", "")
+        try:
+            pts_num = int(pts_str.split("/")[0])
+            pts_max = int(pts_str.split("/")[1])
+            pct_pts = (pts_num / pts_max) * 100
+        except Exception:
+            pct_pts = 50
+        c = (COLORES["BAJO"] if pct_pts >= 70
+             else COLORES["MEDIO"] if pct_pts >= 40
+             else COLORES["CRITICO"])
+        return html.Div(style={
+            "display": "flex", "alignItems": "center", "gap": "10px",
+            "padding": "8px 0", "borderBottom": f"0.5px solid {COLORES['borde']}",
+        }, children=[
+            html.Div(style={"width": "8px", "height": "8px", "borderRadius": "50%",
+                            "backgroundColor": c, "flexShrink": "0"}),
+            html.Div(f["factor"], style={"fontSize": "12px", "color": COLORES["texto"],
+                                         "flex": "1"}),
+            html.Div(f.get("valor", ""), style={"fontSize": "11px",
+                                                 "color": COLORES["texto2"],
+                                                 "whiteSpace": "nowrap"}),
+            html.Div(pts_str, style={"fontSize": "11px", "fontWeight": "600",
+                                      "color": c, "whiteSpace": "nowrap",
+                                      "minWidth": "40px", "textAlign": "right"}),
+        ])
+
+    factores_div = html.Div([
+        _lbl("Factores evaluados"),
+        *[_fila_factor(f) for f in factores],
+    ])
+
+    # ── Alertas climáticas ───────────────────────────────────
+    alertas = []
+    if clima.get("alerta_helada"):
+        alertas.append(html.Div(
+            f"⚠ Alerta helada — {heladas} días proyectados en los próximos 7 días. "
+            "Evaluar cobertura de cultivos en pie.",
+            style={
+                "backgroundColor": COLORES["fondo_critico"],
+                "border": f"1px solid {COLORES['CRITICO']}",
+                "borderRadius": "8px", "padding": "10px 14px", "marginTop": "14px",
+                "fontSize": "12px", "color": COLORES["CRITICO"],
+            }
+        ))
+    elif clima.get("alerta_sequia"):
+        alertas.append(html.Div(
+            "⚠ Alerta sequía — precipitación baja y humedad reducida. "
+            "Monitorear stress hídrico del cultivo.",
+            style={
+                "backgroundColor": COLORES["fondo_medio"],
+                "border": f"1px solid {COLORES['MEDIO']}",
+                "borderRadius": "8px", "padding": "10px 14px", "marginTop": "14px",
+                "fontSize": "12px", "color": COLORES["MEDIO"],
+            }
+        ))
+
+    return [header, desc_div, kpis, factores_div, *alertas], visible
 
 
 # ── Entry point ──────────────────────────────────────────────
