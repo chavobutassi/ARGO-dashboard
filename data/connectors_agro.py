@@ -178,12 +178,11 @@ class ConectorAgro:
             return cached
 
         try:
-            desde = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-            hasta = datetime.now().strftime("%Y-%m-%d")
-            url = f"https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/{desde}/{hasta}"
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS, verify=False)
+            url = "https://dolarapi.com/v1/dolares/oficial"
+            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
             resp.raise_for_status()
-            tc_oficial = float(resp.json()["results"][-1]["valor"])
+            data = resp.json()
+            tc_oficial = round((float(data["compra"]) + float(data["venta"])) / 2, 2)
         except Exception as e:
             log.warning(f"BCRA no disponible ({e})")
             tc_oficial = 1050.0

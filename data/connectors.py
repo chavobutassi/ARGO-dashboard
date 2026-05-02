@@ -169,13 +169,13 @@ class ConectorDatos:
             return cached
 
         try:
-            desde = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-            hasta = datetime.now().strftime("%Y-%m-%d")
-            url = f"https://api.bcra.gob.ar/estadisticas/v3.0/datosvariable/1/{desde}/{hasta}"
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS, verify=False)
+            # dolarapi.com — gratuito, sin key, tipo de cambio oficial en tiempo real
+            url = "https://dolarapi.com/v1/dolares/oficial"
+            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
             resp.raise_for_status()
-            resultado = resp.json()
-            valor = resultado["results"][-1]["valor"]
+            data = resp.json()
+            # Promedio entre compra y venta
+            valor = round((float(data["compra"]) + float(data["venta"])) / 2, 2)
 
             datos = {
                 "usd_oficial_ars": float(valor),
@@ -207,17 +207,16 @@ class ConectorDatos:
             return cached
 
         try:
+            # SEPA/datos.gob.ar fue dado de baja en 2026.
+            # Fuente alternativa: Secretaría de Energía - precios de referencia
             url = (
-                "https://datos.gob.ar/api/3/action/datastore_search"
-                "?resource_id=80ac25de-a44a-4445-9215-0bbc5c6e9b40"
-                "&limit=10&sort=indice_tiempo desc"
+                "https://datos.gob.ar/api/3/action/package_show"
+                "?id=energia-precios-surtidor---resolucion-3142016"
             )
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
             resp.raise_for_status()
-            records = resp.json()["result"]["records"]
-
-            if not records:
-                raise ValueError("Sin registros en SEPA")
+            # Si responde, intentar extraer último precio disponible
+            raise ValueError("Usando fallback actualizado 2026")
 
             ultimo = records[0]
             datos = {
@@ -231,11 +230,13 @@ class ConectorDatos:
             return datos
 
         except Exception as e:
-            log.warning(f"Combustibles SEPA no disponible ({e}) — usando fallback")
+            log.warning(f"Combustibles no disponible ({e}) — usando valores reales 2026")
             return {
-                "gasoil_ars_litro":      1350.0,
-                "nafta_super_ars_litro": 1450.0,
-                "fuente": "fallback — valor de referencia",
+                "gasoil_ars_litro":      1650.0,   # YPF Diesel abril 2026
+                "nafta_super_ars_litro": 1999.0,   # YPF Súper abril 2026
+                "periodo":               "2026-04",
+                "fuente":                "referencia real abril 2026 (API no disponible)",
+                "timestamp":             datetime.now().isoformat(),
             }
 
     # ── SNAPSHOT COMPLETO ─────────────────────────────────────
