@@ -2012,7 +2012,7 @@ def actualizar_panel_agro(empresa_id, _sitrep):
         ))
 
     return [header, desc_div, kpis, factores_div, *alertas], visible
-
+r
 
 # ── Entry point ──────────────────────────────────────────────
 if __name__ == "__main__":
