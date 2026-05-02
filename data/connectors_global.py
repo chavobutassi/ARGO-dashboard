@@ -381,6 +381,66 @@ class ConectorGlobal:
                     "categoria": "Logística",
                 })
 
+            # Señal 5: Posición de Argentina en ranking soja
+            ranking_soja = self.ranking_productores("soja")
+            pos_arg = next((r for r in ranking_soja if r.get("es_argentina")), None)
+            if pos_arg:
+                señales.append({
+                    "titulo": f"Argentina #{pos_arg['posicion']} productor mundial de soja",
+                    "descripcion": (
+                        f"{pos_arg['produccion_mm']} MM tn — {pos_arg['pct_global']}% de la producción global. "
+                        "Cualquier variación en clima o política cambiaria impacta directamente el precio mundial."
+                    ),
+                    "impacto":   "MEDIO",
+                    "color":     "#378ADD",
+                    "categoria": "Posición global",
+                })
+
+            # Señal 6: Maíz — comparar tendencia vs soja
+            maiz = precios.get("maiz", {})
+            soja_precio = soja.get("precio", 0)
+            maiz_precio = maiz.get("precio", 0)
+            if soja_precio and maiz_precio:
+                ratio_sm = round(soja_precio / maiz_precio, 2)
+                if ratio_sm > 2.5:
+                    señales.append({
+                        "titulo": f"Relación soja/maíz: {ratio_sm}x — favorable a soja",
+                        "descripcion": (
+                            f"Ratio precio soja/maíz en {ratio_sm}x. "
+                            "Por encima de 2.3x conviene priorizar soja en la rotación de cultivos."
+                        ),
+                        "impacto":   "MEDIO",
+                        "color":     "#639922",
+                        "categoria": "Estrategia cultivo",
+                    })
+                elif ratio_sm < 2.0:
+                    señales.append({
+                        "titulo": f"Relación soja/maíz: {ratio_sm}x — favorable a maíz",
+                        "descripcion": (
+                            f"Ratio precio soja/maíz en {ratio_sm}x. "
+                            "Por debajo de 2.0x el maíz ofrece mejor retorno relativo por hectárea."
+                        ),
+                        "impacto":   "MEDIO",
+                        "color":     "#BA7517",
+                        "categoria": "Estrategia cultivo",
+                    })
+
+            # Señal 7: Brent vs WTI (spread logístico)
+            brent = precios.get("brent", {})
+            if wti and brent:
+                spread = round(brent.get("precio", 0) - wti.get("precio", 0), 2)
+                if spread > 5:
+                    señales.append({
+                        "titulo": f"Spread Brent-WTI: USD {spread}/barril",
+                        "descripcion": (
+                            "Spread elevado indica tensión en mercados de crudo internacional. "
+                            "Impacto potencial en costos de exportación marítima."
+                        ),
+                        "impacto":   "BAJO",
+                        "color":     "#BA7517",
+                        "categoria": "Logística",
+                    })
+
         except Exception as e:
             log.warning(f"Error generando señales globales: {e}")
 
@@ -422,25 +482,52 @@ class ConectorGlobal:
     def _fallback_ranking(self, cultivo: str) -> list[dict]:
         rankings = {
             "soja": [
-                {"posicion": 1, "pais": "Brasil",          "produccion_mm": 155.0, "pct_global": 35.0, "es_argentina": False},
-                {"posicion": 2, "pais": "Estados Unidos",  "produccion_mm": 116.0, "pct_global": 26.0, "es_argentina": False},
-                {"posicion": 3, "pais": "Argentina",       "produccion_mm":  50.0, "pct_global": 11.0, "es_argentina": True},
-                {"posicion": 4, "pais": "China",           "produccion_mm":  20.0, "pct_global":  4.5, "es_argentina": False},
+                {"posicion": 1, "pais": "Brasil",          "produccion_mm": 155.0, "pct_global": 34.9, "es_argentina": False},
+                {"posicion": 2, "pais": "Estados Unidos",  "produccion_mm": 116.0, "pct_global": 26.1, "es_argentina": False},
+                {"posicion": 3, "pais": "Argentina",       "produccion_mm":  50.0, "pct_global": 11.3, "es_argentina": True},
+                {"posicion": 4, "pais": "China",           "produccion_mm":  20.3, "pct_global":  4.6, "es_argentina": False},
                 {"posicion": 5, "pais": "India",           "produccion_mm":  13.0, "pct_global":  2.9, "es_argentina": False},
+                {"posicion": 6, "pais": "Paraguay",        "produccion_mm":  9.8,  "pct_global":  2.2, "es_argentina": False},
+                {"posicion": 7, "pais": "Canadá",          "produccion_mm":  6.4,  "pct_global":  1.4, "es_argentina": False},
+                {"posicion": 8, "pais": "Uruguay",         "produccion_mm":  2.8,  "pct_global":  0.6, "es_argentina": False},
+                {"posicion": 9, "pais": "Bolivia",         "produccion_mm":  2.5,  "pct_global":  0.6, "es_argentina": False},
+                {"posicion":10, "pais": "Rusia",           "produccion_mm":  2.1,  "pct_global":  0.5, "es_argentina": False},
             ],
             "maiz": [
                 {"posicion": 1, "pais": "Estados Unidos",  "produccion_mm": 390.0, "pct_global": 32.0, "es_argentina": False},
-                {"posicion": 2, "pais": "China",           "produccion_mm": 277.0, "pct_global": 23.0, "es_argentina": False},
-                {"posicion": 3, "pais": "Brasil",          "produccion_mm": 137.0, "pct_global": 11.0, "es_argentina": False},
+                {"posicion": 2, "pais": "China",           "produccion_mm": 277.0, "pct_global": 22.7, "es_argentina": False},
+                {"posicion": 3, "pais": "Brasil",          "produccion_mm": 137.0, "pct_global": 11.2, "es_argentina": False},
                 {"posicion": 4, "pais": "Argentina",       "produccion_mm":  55.0, "pct_global":  4.5, "es_argentina": True},
                 {"posicion": 5, "pais": "Ucrania",         "produccion_mm":  27.0, "pct_global":  2.2, "es_argentina": False},
+                {"posicion": 6, "pais": "India",           "produccion_mm":  23.0, "pct_global":  1.9, "es_argentina": False},
+                {"posicion": 7, "pais": "México",          "produccion_mm":  22.0, "pct_global":  1.8, "es_argentina": False},
+                {"posicion": 8, "pais": "Sudáfrica",       "produccion_mm":  16.0, "pct_global":  1.3, "es_argentina": False},
+                {"posicion": 9, "pais": "Rumania",         "produccion_mm":  13.0, "pct_global":  1.1, "es_argentina": False},
+                {"posicion":10, "pais": "Indonesia",       "produccion_mm":  11.0, "pct_global":  0.9, "es_argentina": False},
             ],
             "trigo": [
-                {"posicion": 1, "pais": "China",           "produccion_mm": 138.0, "pct_global": 18.0, "es_argentina": False},
+                {"posicion": 1, "pais": "China",           "produccion_mm": 138.0, "pct_global": 17.9, "es_argentina": False},
                 {"posicion": 2, "pais": "India",           "produccion_mm": 108.0, "pct_global": 14.0, "es_argentina": False},
-                {"posicion": 3, "pais": "Rusia",           "produccion_mm":  92.0, "pct_global": 12.0, "es_argentina": False},
-                {"posicion": 4, "pais": "Estados Unidos",  "produccion_mm":  45.0, "pct_global":  5.9, "es_argentina": False},
-                {"posicion": 5, "pais": "Argentina",       "produccion_mm":  22.0, "pct_global":  2.9, "es_argentina": True},
+                {"posicion": 3, "pais": "Rusia",           "produccion_mm":  92.0, "pct_global": 11.9, "es_argentina": False},
+                {"posicion": 4, "pais": "Estados Unidos",  "produccion_mm":  45.0, "pct_global":  5.8, "es_argentina": False},
+                {"posicion": 5, "pais": "Canadá",          "produccion_mm":  35.0, "pct_global":  4.5, "es_argentina": False},
+                {"posicion": 6, "pais": "Francia",         "produccion_mm":  32.0, "pct_global":  4.1, "es_argentina": False},
+                {"posicion": 7, "pais": "Ucrania",         "produccion_mm":  24.0, "pct_global":  3.1, "es_argentina": False},
+                {"posicion": 8, "pais": "Pakistán",        "produccion_mm":  26.0, "pct_global":  3.4, "es_argentina": False},
+                {"posicion": 9, "pais": "Australia",       "produccion_mm":  25.0, "pct_global":  3.2, "es_argentina": False},
+                {"posicion":10, "pais": "Argentina",       "produccion_mm":  22.0, "pct_global":  2.9, "es_argentina": True},
+            ],
+            "girasol": [
+                {"posicion": 1, "pais": "Ucrania",         "produccion_mm":  11.2, "pct_global": 29.0, "es_argentina": False},
+                {"posicion": 2, "pais": "Rusia",           "produccion_mm":  15.1, "pct_global": 39.0, "es_argentina": False},
+                {"posicion": 3, "pais": "Argentina",       "produccion_mm":   3.8, "pct_global":  9.8, "es_argentina": True},
+                {"posicion": 4, "pais": "China",           "produccion_mm":   2.9, "pct_global":  7.5, "es_argentina": False},
+                {"posicion": 5, "pais": "Rumania",         "produccion_mm":   2.1, "pct_global":  5.4, "es_argentina": False},
+                {"posicion": 6, "pais": "Bulgaria",        "produccion_mm":   1.4, "pct_global":  3.6, "es_argentina": False},
+                {"posicion": 7, "pais": "Hungría",         "produccion_mm":   1.2, "pct_global":  3.1, "es_argentina": False},
+                {"posicion": 8, "pais": "Francia",         "produccion_mm":   0.9, "pct_global":  2.3, "es_argentina": False},
+                {"posicion": 9, "pais": "Turquía",         "produccion_mm":   0.7, "pct_global":  1.8, "es_argentina": False},
+                {"posicion":10, "pais": "Serbia",          "produccion_mm":   0.5, "pct_global":  1.3, "es_argentina": False},
             ],
         }
         return rankings.get(cultivo, rankings["soja"])
