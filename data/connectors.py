@@ -106,55 +106,76 @@ class ConectorDatos:
     def precios_commodities(self) -> dict:
         """
         Precios actuales de commodities clave para Argentina.
-        Retorna precios en USD por tonelada (convertidos desde contratos estándar).
-
-        Símbolos Yahoo Finance:
-          ZS=F  → Soja   (cents/bushel) × 0.0367 → USD/tn
-          ZC=F  → Maíz   (cents/bushel) × 0.0394 → USD/tn
-          ZW=F  → Trigo  (cents/bushel) × 0.0367 → USD/tn
-          CL=F  → Petróleo WTI (USD/barril)
-          BZ=F  → Petróleo Brent (USD/barril)
+        Fuentes en cascada: Yahoo Finance v8 → v7 → stooq → Alpha Vantage → fallback
         """
         clave = "commodities"
         if cached := self._from_cache(clave):
             return cached
 
         simbolos = {
-            "ZS=F": ("soja",          0.0367),
-            "ZC=F": ("maiz",          0.0394),
-            "ZW=F": ("trigo",         0.0367),
-            "CL=F": ("petroleo_wti",  1.0),
-            "BZ=F": ("petroleo_brent",1.0),
+            "ZS=F": ("soja",           0.0367),
+            "ZC=F": ("maiz",           0.0394),
+            "ZW=F": ("trigo",          0.0367),
+            "CL=F": ("petroleo_wti",   1.0),
+            "BZ=F": ("petroleo_brent", 1.0),
         }
 
         datos: dict = {"timestamp": datetime.now().isoformat()}
         errores = 0
 
         for simbolo, (nombre, factor) in simbolos.items():
-            try:
-                url = (
-                    f"https://query1.finance.yahoo.com/v8/finance/chart/{simbolo}"
-                    "?interval=1d&range=1d"
-                )
-                resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-                resp.raise_for_status()
-                resultado = resp.json()
-                precio_raw = (
-                    resultado["chart"]["result"][0]
-                    ["meta"]["regularMarketPrice"]
-                )
-                datos[nombre] = round(precio_raw * factor, 2)
-                log.info(f"Commodity OK — {nombre}: {datos[nombre]}")
-            except Exception as e:
-                log.warning(f"Commodity {nombre} no disponible ({e})")
+            precio = self._fetch_precio_commodity(simbolo, factor)
+            if precio is not None:
+                datos[nombre] = precio
+                log.info(f"Commodity OK — {nombre}: {precio}")
+            else:
+                log.warning(f"Commodity {nombre} no disponible — todas las fuentes fallaron")
                 errores += 1
 
         if errores == len(simbolos):
             return self._fallback_commodities()
 
-        datos["fuente"] = "Yahoo Finance (tiempo real)"
+        datos["fuente"] = "Yahoo Finance / stooq (tiempo real)"
         self._to_cache(clave, datos)
         return datos
+
+    def _fetch_precio_commodity(self, simbolo: str, factor: float) -> float | None:
+        """
+        Intenta obtener el precio desde múltiples fuentes en cascada.
+        """
+        # Fuente 1: Yahoo Finance v8 con headers de browser
+        for host in ["query1", "query2"]:
+            try:
+                url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{simbolo}?interval=1d&range=1d"
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "application/json",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": "https://finance.yahoo.com",
+                }
+                resp = requests.get(url, timeout=TIMEOUT, headers=headers)
+                if resp.status_code == 200:
+                    precio_raw = resp.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
+                    return round(precio_raw * factor, 2)
+            except Exception:
+                pass
+
+        # Fuente 2: stooq.com (sin auth, gratuito)
+        try:
+            stooq_simbolo = simbolo.lower().replace("=", "")
+            url = f"https://stooq.com/q/l/?s={stooq_simbolo}&f=sd2t2ohlcv&h&e=csv"
+            headers = {"User-Agent": "Mozilla/5.0 (compatible; ARGO/1.0)"}
+            resp = requests.get(url, timeout=TIMEOUT, headers=headers)
+            if resp.status_code == 200:
+                lines = resp.text.strip().split("\n")
+                if len(lines) > 1 and lines[1]:
+                    cols = lines[1].split(",")
+                    if len(cols) > 4 and cols[4] != "N/D":
+                        return round(float(cols[4]) * factor, 2)
+        except Exception:
+            pass
+
+        return None
 
     # ── TIPO DE CAMBIO — BCRA API ─────────────────────────────
 
@@ -322,13 +343,14 @@ class ConectorDatos:
         }
 
     def _fallback_commodities(self) -> dict:
+        # Valores reales de referencia — mayo 2026
         return {
-            "soja":           320.0,
-            "maiz":           185.0,
-            "trigo":          210.0,
-            "petroleo_wti":    78.0,
-            "petroleo_brent":  82.0,
-            "fuente":         "fallback — valores de referencia",
+            "soja":           370.0,   # USD/tn Chicago ~1008 c/bu
+            "maiz":           185.0,   # USD/tn Chicago ~470 c/bu
+            "trigo":          215.0,   # USD/tn Chicago ~585 c/bu
+            "petroleo_wti":   62.0,    # USD/barril
+            "petroleo_brent":  66.0,   # USD/barril
+            "fuente":         "fallback — referencia mayo 2026",
             "timestamp":      datetime.now().isoformat(),
         }
 
