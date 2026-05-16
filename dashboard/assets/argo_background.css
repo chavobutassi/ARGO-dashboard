@@ -1,63 +1,61 @@
 /*
- * ARGO — Tema visual dark profesional v3
+ * ARGO — Tema visual dark v4
  * dashboard/assets/argo_background.css
  *
- * Principios:
- *   - Fondo base oscuro pero no negro puro (#0D1B2A)
- *   - Cards con vidrio sutil — no demasiado transparentes
- *   - Textos con jerarquía clara: título / cuerpo / secundario
- *   - Colores de riesgo sin tocar (ARGO los maneja en Python)
- *   - Grilla de datos visible pero sin competir con el contenido
+ * Mejoras vs v3:
+ *   - Cards más visibles y con mejor contraste
+ *   - Tipografía con más jerarquía (tamaños diferenciados)
+ *   - Scores grandes con glow sutil
+ *   - Alertas y badges más legibles
+ *   - Paneles KPI compactos y claros
+ *   - Mapa con contraste mejorado
  */
 
-/* ═══════════════════════════════════════════════════════════
-   BASE — fondo oscuro + grilla
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════ */
 
 html, body {
-  background-color: #0D1B2A !important;
+  background-color: #0B1520 !important;
   min-height: 100vh;
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif !important;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #D4D2CC;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #CED0D6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background-image:
-    linear-gradient(rgba(55,138,221,0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.06) 1px, transparent 1px),
-    linear-gradient(rgba(55,138,221,0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.02) 1px, transparent 1px) !important;
+    linear-gradient(rgba(55,138,221,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.05) 1px, transparent 1px),
+    linear-gradient(rgba(55,138,221,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.018) 1px, transparent 1px) !important;
   background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
 }
 
-/* Resplandor superior — sutil, no distrae */
 body::before {
   content: "";
   position: fixed;
-  top: -150px; left: 5%;
-  width: 500px; height: 350px;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse, rgba(55,138,221,0.12) 0%, transparent 65%);
+  top: -200px; left: 0;
+  width: 100%; height: 500px;
+  z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 50% at 20% 0%, rgba(55,138,221,0.09) 0%, transparent 70%);
 }
 
-/* Resplandor inferior derecho — verde agro */
 body::after {
   content: "";
   position: fixed;
-  bottom: -100px; right: 5%;
-  width: 400px; height: 300px;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse, rgba(99,153,34,0.07) 0%, transparent 70%);
+  bottom: -150px; right: 0;
+  width: 600px; height: 400px;
+  z-index: 0; pointer-events: none;
+  background: radial-gradient(ellipse, rgba(99,153,34,0.06) 0%, transparent 70%);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CONTENEDORES — todo sobre el fondo
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   CONTENEDORES
+   ══════════════════════════════════════════════════ */
 
 #react-entry-point,
 #_dash-app-content,
@@ -69,164 +67,196 @@ body::after {
   z-index: 1;
 }
 
-/* Transparencia solo para divs directos del body */
 body > div { background-color: transparent !important; }
 
-/* ═══════════════════════════════════════════════════════════
-   HEADER — barra superior
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   HEADER
+   ══════════════════════════════════════════════════ */
 
 body > div > div:first-child {
-  background-color: rgba(8, 16, 28, 0.95) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-bottom: 1px solid rgba(55,138,221,0.18) !important;
-  box-shadow: 0 1px 24px rgba(0,0,0,0.3) !important;
+  background-color: rgba(6, 12, 22, 0.97) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-bottom: 1px solid rgba(55,138,221,0.15) !important;
+  box-shadow: 0 2px 32px rgba(0,0,0,0.4) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════
    JERARQUÍA TIPOGRÁFICA
-   ═══════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════ */
 
-/* Títulos de sección */
+/* Títulos principales */
 h1, h2, h3 {
-  color: #ECEAE4 !important;
+  color: #EAE8E2 !important;
   font-weight: 600 !important;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 h4, h5, h6 {
-  color: #D4D2CC !important;
+  color: #CED0D6 !important;
   font-weight: 500 !important;
 }
 
-/* Labels pequeños (uppercase) — texto secundario claro */
+/* Labels tipo uppercase — sección */
 div[style*="textTransform: uppercase"],
-div[style*="text-transform: uppercase"],
-div[style*="letterSpacing"] {
+div[style*="text-transform: uppercase"] {
+  color: #6A7D94 !important;
+  letter-spacing: 0.08em !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+
+/* Texto cuerpo */
+p, span, label { color: #A8AAB0; }
+
+/* Score número grande — hereda el color de riesgo */
+div[style*="fontSize: \"64px\""],
+div[style*="fontSize: \"52px\""],
+div[style*="fontSize: \"48px\""] {
+  color: inherit !important;
+  filter: drop-shadow(0 0 20px currentColor);
+  line-height: 1 !important;
+}
+
+/* ══════════════════════════════════════════════════
+   CARDS — glassmorphism calibrado
+   ══════════════════════════════════════════════════ */
+
+.card {
+  background-color: rgba(14, 24, 40, 0.9) !important;
+  border: 1px solid rgba(55,138,221,0.12) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-radius: 12px !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  color: #CED0D6 !important;
+}
+
+/* ══════════════════════════════════════════════════
+   ZONE HEADERS — linea coloreada a la izquierda
+   ══════════════════════════════════════════════════ */
+
+/* ZONA 1 OPERADOR */
+[style*="ZONA 1"],
+[style*="Zona 1"],
+[style*="OPERADOR"] {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.06em !important;
   color: #8A9BB0 !important;
 }
 
-/* Scores y números grandes — blancos puros */
-div[style*="fontSize: \"64px\""],
-div[style*="fontSize: \"52px\""],
-div[style*="fontSize: \"48px\""],
-div[style*="font-size: 64px"],
-div[style*="font-size: 52px"] {
-  color: inherit !important;  /* respetar color de riesgo de Python */
-  text-shadow: 0 0 30px currentColor;
+/* ══════════════════════════════════════════════════
+   ALERTAS — más legibles
+   ══════════════════════════════════════════════════ */
+
+/* Badges de nivel */
+div[style*="border-radius: \"8px\""][style*="CRITICO"],
+div[style*="borderRadius: \"8px\""][style*="CRITICO"] {
+  border-width: 1px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em !important;
 }
 
-/* Texto cuerpo general */
-p, span, label { color: #B8B6B0; }
-
-/* Texto secundario */
-div[style*="color: \"#6B6B65\""],
-div[style*="color: \"#8A8880\""] {
-  color: #7A8A9A !important;
-}
-
-/* ═══════════════════════════════════════════════════════════
-   CARDS — glassmorphism bien calibrado
-   ═══════════════════════════════════════════════════════════ */
-
-/* NO pisar todos los borderRadius — solo las cards reales */
-.card,
-div[style*="padding: \"20px\""],
-div[style*="padding: \"16px\""] {
-  background-color: rgba(18, 32, 50, 0.85) !important;
-  border: 1px solid rgba(55,138,221,0.14) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.25) !important;
-  color: #D4D2CC !important;
-}
-
-/* Cards de riesgo — preservar colores ARGO */
-div[style*="fondo_critico"],
-div[style*="fondo_alto"],
-div[style*="fondo_medio"],
-div[style*="fondo_bajo"] {
-  backdrop-filter: blur(4px);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   DROPDOWN / SELECTOR DE EMPRESA
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   DROPDOWN
+   ══════════════════════════════════════════════════ */
 
 .Select-control {
-  background-color: rgba(8, 18, 32, 0.9) !important;
-  border: 1px solid rgba(55,138,221,0.25) !important;
+  background-color: rgba(8, 16, 30, 0.95) !important;
+  border: 1px solid rgba(55,138,221,0.2) !important;
   border-radius: 8px !important;
-  color: #D4D2CC !important;
+  color: #CED0D6 !important;
   font-size: 13px !important;
+  height: 36px !important;
 }
 
 .Select-control:hover {
-  border-color: rgba(55,138,221,0.45) !important;
+  border-color: rgba(55,138,221,0.4) !important;
+  box-shadow: 0 0 0 3px rgba(55,138,221,0.08) !important;
+}
+
+.Select-control.is-focused {
+  border-color: rgba(55,138,221,0.6) !important;
+  box-shadow: 0 0 0 3px rgba(55,138,221,0.12) !important;
 }
 
 .Select-menu-outer {
-  background-color: rgba(10, 22, 40, 0.98) !important;
-  border: 1px solid rgba(55,138,221,0.2) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4) !important;
-  backdrop-filter: blur(16px) !important;
-  margin-top: 4px !important;
+  background-color: rgba(8, 16, 30, 0.99) !important;
+  border: 1px solid rgba(55,138,221,0.18) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
+  backdrop-filter: blur(20px) !important;
+  margin-top: 6px !important;
+  overflow: hidden !important;
 }
 
 .Select-value-label,
-.Select-placeholder { color: #C8C6C0 !important; font-size: 13px !important; }
+.Select-placeholder {
+  color: #CED0D6 !important;
+  font-size: 13px !important;
+  line-height: 36px !important;
+}
 
 .Select-option {
   background-color: transparent !important;
-  color: #B8B6B0 !important;
+  color: #A8AAB0 !important;
   font-size: 13px !important;
-  padding: 10px 14px !important;
+  padding: 9px 14px !important;
+  transition: background 0.1s ease !important;
+  border-radius: 0 !important;
 }
+
+.Select-option:first-child { border-radius: 10px 10px 0 0 !important; }
+.Select-option:last-child  { border-radius: 0 0 10px 10px !important; }
 
 .Select-option:hover,
 .Select-option.is-focused {
-  background-color: rgba(55,138,221,0.12) !important;
-  color: #E8E6E0 !important;
+  background-color: rgba(55,138,221,0.1) !important;
+  color: #EAE8E2 !important;
 }
 
 .Select-option.is-selected {
-  background-color: rgba(55,138,221,0.2) !important;
-  color: #E8E6E0 !important;
+  background-color: rgba(55,138,221,0.18) !important;
+  color: #EAE8E2 !important;
   font-weight: 500 !important;
 }
 
-.Select-arrow { border-top-color: #7A8A9A !important; }
+.Select-arrow-zone { padding-right: 10px !important; }
+.Select-arrow { border-top-color: #6A7D94 !important; }
 
-/* ═══════════════════════════════════════════════════════════
-   BOTONES
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   BOTÓN ACTUALIZAR
+   ══════════════════════════════════════════════════ */
 
-.btn-outline-secondary,
-button[id*="btn"],
-button[id*="analizar"] {
-  background: rgba(55,138,221,0.1) !important;
-  border: 1px solid rgba(55,138,221,0.3) !important;
+button#btn-analizar,
+button[id="btn-analizar"] {
+  background: rgba(55,138,221,0.15) !important;
+  border: 1px solid rgba(55,138,221,0.35) !important;
   color: #7FBCE8 !important;
   border-radius: 8px !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.02em !important;
+  padding: 8px 20px !important;
   transition: all 0.15s ease !important;
+  cursor: pointer !important;
 }
 
-.btn-outline-secondary:hover,
-button[id*="btn"]:hover {
-  background: rgba(55,138,221,0.2) !important;
-  border-color: rgba(55,138,221,0.5) !important;
-  color: #A8D4F8 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(55,138,221,0.2) !important;
+button#btn-analizar:hover,
+button[id="btn-analizar"]:hover {
+  background: rgba(55,138,221,0.25) !important;
+  border-color: rgba(55,138,221,0.55) !important;
+  color: #B8D8F5 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 16px rgba(55,138,221,0.2) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   GRÁFICOS PLOTLY — fondo transparente
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   PLOTLY — fondo transparente + legibilidad
+   ══════════════════════════════════════════════════ */
 
 .js-plotly-plot .plotly .bg,
 .plotly-graph-div,
@@ -234,83 +264,132 @@ button[id*="btn"]:hover {
   background: transparent !important;
 }
 
-/* Ejes y texto de gráficos — legibles pero no dominantes */
 .js-plotly-plot text {
-  fill: #8A9BB0 !important;
+  fill: #7A8E9E !important;
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 11px !important;
 }
 
 .js-plotly-plot .gridlayer path {
-  stroke: rgba(55,138,221,0.08) !important;
+  stroke: rgba(55,138,221,0.07) !important;
 }
 
 .js-plotly-plot .zerolinelayer path {
-  stroke: rgba(55,138,221,0.15) !important;
+  stroke: rgba(55,138,221,0.12) !important;
 }
 
-/* Tooltips de Plotly */
+/* Tooltips */
 .hoverlayer .hovertext rect {
-  fill: rgba(8, 18, 32, 0.95) !important;
-  stroke: rgba(55,138,221,0.3) !important;
+  fill: rgba(6, 14, 26, 0.97) !important;
+  stroke: rgba(55,138,221,0.25) !important;
+  rx: 6 !important;
 }
 .hoverlayer .hovertext text {
-  fill: #E8E6E0 !important;
+  fill: #D4D8E0 !important;
+  font-size: 12px !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   BADGES Y ALERTAS — preservar colores de riesgo ARGO
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   INDICADORES KPI COMPACTOS
+   ══════════════════════════════════════════════════ */
 
-/* Brillar sutilmente los badges de nivel */
-div[style*="#E24B4A"],  /* CRÍTICO */
-span[style*="#E24B4A"] { text-shadow: 0 0 12px rgba(226,75,74,0.4); }
+/* KPIs pequeños (Críticos, Altos, Medios) — compactar */
+div[id*="kpi"],
+div[style*="fontSize: \"36px\""],
+div[style*="fontSize: \"32px\""],
+div[style*="fontSize: \"28px\""] {
+  font-size: 28px !important;
+  line-height: 1.1 !important;
+}
 
-div[style*="#D85A30"],  /* ALTO */
-span[style*="#D85A30"] { text-shadow: 0 0 12px rgba(216,90,48,0.35); }
+/* ══════════════════════════════════════════════════
+   BADGES DE RIESGO — glow sutil por nivel
+   ══════════════════════════════════════════════════ */
 
-div[style*="#639922"],  /* BAJO */
-span[style*="#639922"] { text-shadow: 0 0 12px rgba(99,153,34,0.35); }
+div[style*="#E24B4A"],
+span[style*="#E24B4A"] {
+  text-shadow: 0 0 16px rgba(226,75,74,0.5) !important;
+}
 
-/* ═══════════════════════════════════════════════════════════
-   SEPARADORES Y BORDES
-   ═══════════════════════════════════════════════════════════ */
+div[style*="#D85A30"],
+span[style*="#D85A30"] {
+  text-shadow: 0 0 16px rgba(216,90,48,0.45) !important;
+}
+
+div[style*="#BA7517"],
+span[style*="#BA7517"] {
+  text-shadow: 0 0 12px rgba(186,117,23,0.4) !important;
+}
+
+div[style*="#639922"],
+span[style*="#639922"] {
+  text-shadow: 0 0 12px rgba(99,153,34,0.4) !important;
+}
+
+/* ══════════════════════════════════════════════════
+   BARRA DE PROGRESO / SCORE
+   ══════════════════════════════════════════════════ */
+
+/* La barra de fondo del score */
+div[style*="height: \"5px\""],
+div[style*="height: \"4px\""] {
+  background-color: rgba(255,255,255,0.07) !important;
+  border-radius: 4px !important;
+}
+
+/* ══════════════════════════════════════════════════
+   SEPARADORES
+   ══════════════════════════════════════════════════ */
 
 hr {
   border: none !important;
-  border-top: 1px solid rgba(55,138,221,0.12) !important;
-  margin: 12px 0 !important;
+  border-top: 1px solid rgba(55,138,221,0.1) !important;
+  margin: 10px 0 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SCROLLBAR — discreta, con color ARGO
-   ═══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════
+   SCROLLBAR
+   ══════════════════════════════════════════════════ */
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 3px; }
-::-webkit-scrollbar-thumb { background: rgba(55,138,221,0.25); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(55,138,221,0.45); }
-
-/* ═══════════════════════════════════════════════════════════
-   LOADING STATE — cuando Dash está cargando
-   ═══════════════════════════════════════════════════════════ */
-
-._dash-loading {
-  background-color: #0D1B2A !important;
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+::-webkit-scrollbar-thumb {
+  background: rgba(55,138,221,0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(55,138,221,0.4);
 }
 
-._dash-loading-callback {
-  opacity: 0.6;
-  transition: opacity 0.2s ease;
+/* ══════════════════════════════════════════════════
+   LOADING STATE
+   ══════════════════════════════════════════════════ */
+
+._dash-loading { background-color: #0B1520 !important; }
+._dash-loading-callback { opacity: 0.5; transition: opacity 0.2s ease; }
+
+/* ══════════════════════════════════════════════════
+   TABLA / FILAS ALTERNAS
+   ══════════════════════════════════════════════════ */
+
+table tr:nth-child(even) {
+  background-color: rgba(55,138,221,0.03) !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════
+   PARETO / BARRAS HORIZONTALES
+   ══════════════════════════════════════════════════ */
+
+.js-plotly-plot .bars path {
+  opacity: 0.9 !important;
+}
+
+/* ══════════════════════════════════════════════════
    RESPONSIVE
-   ═══════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════ */
 
-@media (max-width: 1024px) {
-  body { font-size: 13px; }
-  body::before { width: 300px; height: 200px; }
+@media (max-width: 1280px) {
+  body { font-size: 12px; }
 }
 
 @media (max-width: 768px) {
