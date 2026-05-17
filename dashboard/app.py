@@ -220,7 +220,7 @@ EMPRESAS: dict = {
     "transportadora": {
         "label": "Transportadora del Sur S.A.",
         "config": _cfg("config/transportadora_ejemplo.json"),
-        "color": COLORES["azul"],
+        "color": "#378ADD",
         "lat": -38.72, "lon": -62.27, "lugar": "Bahía Blanca",
         "lecturas_default": {
             "precipitacion_mm": 65.0,
@@ -235,7 +235,7 @@ EMPRESAS: dict = {
     "agro": {
         "label": "Cooperativa Agropecuaria Pampa Sur",
         "config": _cfg("config/agro_ejemplo.json"),
-        "color": COLORES["BAJO"],
+        "color": "#639922",
         "lat": -37.32, "lon": -63.24, "lugar": "Santa Rosa, La Pampa",
         "lecturas_default": {
             "precipitacion_acumulada_mm": 12.0,
@@ -250,7 +250,7 @@ EMPRESAS: dict = {
     "ypf": {
         "label": "YPF Vaca Muerta",
         "config": _cfg("config/ypf_vaca_muerta.json"),
-        "color": COLORES["CRITICO"],
+        "color": "#E24B4A",
         "lat": -38.95, "lon": -68.07, "lugar": "Neuquén, Vaca Muerta",
         "lecturas_default": {
             "equipos_produccion_fuera_servicio": 1.0,
@@ -264,7 +264,7 @@ EMPRESAS: dict = {
     "pan_american": {
         "label": "Pan American Energy S.A.",
         "config": _cfg("config/pan_american.json"),
-        "color": COLORES["ALTO"],
+        "color": "#D85A30",
         "lat": -38.9516, "lon": -68.0591, "lugar": "Neuquén, Vaca Muerta",
         "lecturas_default": {
             "equipos_produccion_fuera_servicio": 2.0,
@@ -279,7 +279,7 @@ EMPRESAS: dict = {
     "andreani": {
         "label": "Andreani Logística S.A.",
         "config": _cfg("config/andreani.json"),
-        "color": COLORES["azul"],
+        "color": "#378ADD",
         "lat": -34.6037, "lon": -58.3816, "lugar": "Buenos Aires (GBA)",
         "lecturas_default": {
             "precipitacion_mm": 8.0, "viento_kmh": 22.0, "temperatura_c": 17.0,
@@ -291,7 +291,7 @@ EMPRESAS: dict = {
     "aca_agro": {
         "label": "ACA Agropecuaria Coop. Ltda.",
         "config": _cfg("config/aca_agro.json"),
-        "color": COLORES["BAJO"],
+        "color": "#639922",
         "lat": -32.9468, "lon": -60.6393, "lugar": "Rosario, Santa Fe",
         "lecturas_default": {
             "precipitacion_acumulada_mm": 38.0, "indice_sequia_palmer": -0.8,
@@ -353,34 +353,34 @@ for _key, _emp in EMPRESAS.items():
 # ── Zonas agrícolas de Argentina para el mapa ────────────────
 ZONAS_AGRO_MAPA = [
     {"nombre": "Pampa Húmeda Norte",  "lat": -33.0, "lon": -61.0,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 14000, "color": COLORES["BAJO"], "size": 22},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 14000, "color": "#639922", "size": 22},
     {"nombre": "Pampa Húmeda Centro", "lat": -35.0, "lon": -62.0,
-     "cultivo": "Soja/Maíz", "aptitud": "Alta", "flete_ars_tn": 16000, "color": COLORES["BAJO"], "size": 22},
+     "cultivo": "Soja/Maíz", "aptitud": "Alta", "flete_ars_tn": 16000, "color": "#639922", "size": 22},
     {"nombre": "Santa Fe Centro",     "lat": -31.5, "lon": -61.5,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 12000, "color": COLORES["BAJO"], "size": 20},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 12000, "color": "#639922", "size": 20},
     {"nombre": "Entre Ríos",          "lat": -32.0, "lon": -58.5,
-     "cultivo": "Soja/Trigo", "aptitud": "Alta", "flete_ars_tn": 18000, "color": COLORES["BAJO"], "size": 18},
+     "cultivo": "Soja/Trigo", "aptitud": "Alta", "flete_ars_tn": 18000, "color": "#639922", "size": 18},
     {"nombre": "Córdoba Sur",         "lat": -33.5, "lon": -63.5,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 20000, "color": COLORES["BAJO"], "size": 20},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 20000, "color": "#639922", "size": 20},
     {"nombre": "Córdoba Norte",       "lat": -30.5, "lon": -63.5,
-     "cultivo": "Maíz",  "aptitud": "Media", "flete_ars_tn": 24000, "color": COLORES["MEDIO"], "size": 16},
+     "cultivo": "Maíz",  "aptitud": "Media", "flete_ars_tn": 24000, "color": "#BA7517", "size": 16},
     {"nombre": "Buenos Aires Norte",  "lat": -35.0, "lon": -60.0,
-     "cultivo": "Trigo/Soja", "aptitud": "Alta", "flete_ars_tn": 15000, "color": COLORES["BAJO"], "size": 18},
+     "cultivo": "Trigo/Soja", "aptitud": "Alta", "flete_ars_tn": 15000, "color": "#639922", "size": 18},
     {"nombre": "Buenos Aires Sur",    "lat": -38.0, "lon": -60.5,
-     "cultivo": "Trigo/Girasol", "aptitud": "Media", "flete_ars_tn": 22000, "color": COLORES["MEDIO"], "size": 16},
+     "cultivo": "Trigo/Girasol", "aptitud": "Media", "flete_ars_tn": 22000, "color": "#BA7517", "size": 16},
     {"nombre": "La Pampa Este",       "lat": -36.5, "lon": -64.5,
-     "cultivo": "Trigo",  "aptitud": "Media", "flete_ars_tn": 26000, "color": COLORES["MEDIO"], "size": 14},
+     "cultivo": "Trigo",  "aptitud": "Media", "flete_ars_tn": 26000, "color": "#BA7517", "size": 14},
     {"nombre": "La Pampa Oeste",      "lat": -37.5, "lon": -67.0,
-     "cultivo": "Ganadería", "aptitud": "Baja", "flete_ars_tn": 32000, "color": COLORES["ALTO"], "size": 12},
+     "cultivo": "Ganadería", "aptitud": "Baja", "flete_ars_tn": 32000, "color": "#D85A30", "size": 12},
     {"nombre": "Chaco",               "lat": -27.0, "lon": -61.0,
-     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 34000, "color": COLORES["MEDIO"], "size": 14},
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 34000, "color": "#BA7517", "size": 14},
     {"nombre": "Santiago del Estero", "lat": -28.0, "lon": -63.5,
-     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 30000, "color": COLORES["MEDIO"], "size": 14},
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 30000, "color": "#BA7517", "size": 14},
     {"nombre": "Tucumán",             "lat": -27.0, "lon": -65.5,
-     "cultivo": "Soja/Caña", "aptitud": "Media", "flete_ars_tn": 32000, "color": COLORES["MEDIO"], "size": 13},
+     "cultivo": "Soja/Caña", "aptitud": "Media", "flete_ars_tn": 32000, "color": "#BA7517", "size": 13},
     {"nombre": "Puerto Rosario ⚓",   "lat": -32.95, "lon": -60.64,
      "cultivo": "Destino exportación", "aptitud": "—", "flete_ars_tn": 0,
-     "color": COLORES["azul"], "size": 18},
+     "color": "#378ADD", "size": 18},
 ]
 
 
@@ -731,210 +731,286 @@ app.layout = html.Div(
             ],
         ),
 
-        # ── Contenido principal ──────────────────────────────
-        html.Div(style={"padding": "20px 28px"}, children=[
+        # ── Contenido principal — 2 columnas ────────────────
+        html.Div(style={"padding": "16px 20px"}, children=[
 
-            # ═══════════════════════════════════════════════════
-            # ZONA GLOBAL — Contexto mundial agropecuario
-            # Siempre visible, independiente de la empresa
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                style={"display": "flex", "alignItems": "center",
-                       "gap": "12px", "marginBottom": "12px"},
-                children=[
-                    html.Div(style={"width": "4px", "height": "18px",
-                                    "backgroundColor": COLORES["azul"],
-                                    "borderRadius": "2px"}),
-                    html.Div("Contexto Global — Mercados mundiales", style={
-                        "fontSize": "11px", "fontWeight": "500",
-                        "color": COLORES["texto2"], "textTransform": "uppercase",
-                        "letterSpacing": "0.08em",
-                    }),
-                    html.Div(id="global-timestamp", style={
-                        "fontSize": "10px", "color": COLORES["texto2"],
-                    }),
-                ],
-            ),
+            # ══ GRILLA PRINCIPAL: izquierda + derecha ══════════
             html.Div(style={
                 "display": "grid",
-                "gridTemplateColumns": "1fr 1fr",
-                "gap": "14px", "marginBottom": "14px",
+                "gridTemplateColumns": "1fr 320px",
+                "gap": "14px",
+                "alignItems": "start",
             }, children=[
-                html.Div(id="panel-global-precios", style=_card()),
-                html.Div(id="panel-global-señales", style=_card()),
-            ]),
-            html.Div(style={
-                "display": "grid",
-                "gridTemplateColumns": "1fr 1fr",
-                "gap": "14px", "marginBottom": "28px",
-            }, children=[
-                html.Div(id="panel-global-ranking", style=_card()),
-                html.Div(id="panel-global-usda",    style=_card()),
-            ]),
 
-            # ═══════════════════════════════════════════════════
-            # ZONA 1 — OPERADOR   ¿Hay algo urgente ahora?
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                style={
-                    "display": "flex", "alignItems": "center",
-                    "gap": "10px", "marginBottom": "10px",
-                },
+                # ══ COLUMNA IZQUIERDA ══════════════════════════
+                html.Div(style={"display": "flex", "flexDirection": "column", "gap": "12px"},
                 children=[
-                    html.Div(style={
-                        "width": "4px", "height": "18px",
-                        "backgroundColor": COLORES["ALTO"], "borderRadius": "2px",
-                    }),
-                    html.Div("Zona 1 — Operador", style={
-                        "fontSize": "11px", "fontWeight": "500",
-                        "color": COLORES["texto2"], "textTransform": "uppercase",
-                        "letterSpacing": "0.08em",
-                    }),
-                    html.Div("¿hay algo que requiera atención ahora?", style={
-                        "fontSize": "11px", "color": COLORES["texto2"],
-                    }),
-                ],
-            ),
-            html.Div(
-                className="Argo-zona1",
-                style={"marginBottom": "28px"},
-                children=[
-                    html.Div(id="panel-score",   style=_card()),
-                    html.Div(id="panel-alertas", style=_card()),
-                    html.Div(id="panel-mapa",
-                             style=_card({"padding": "8px 10px"})),
-                    html.Div(id="panel-semaforo", style=_card()),
-                ],
-            ),
 
-            # ═══════════════════════════════════════════════════
-            # ZONA 2 — GERENCIA   ¿Dónde está el problema?
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                style={
-                    "display": "flex", "alignItems": "center",
-                    "gap": "10px", "marginBottom": "10px",
-                },
-                children=[
-                    html.Div(style={
-                        "width": "4px", "height": "18px",
-                        "backgroundColor": COLORES["azul"], "borderRadius": "2px",
-                    }),
-                    html.Div("Zona 2 — Gerencia", style={
-                        "fontSize": "11px", "fontWeight": "500",
-                        "color": COLORES["texto2"], "textTransform": "uppercase",
-                        "letterSpacing": "0.08em",
-                    }),
-                    html.Div("¿dónde está el problema y qué hago?", style={
-                        "fontSize": "11px", "color": COLORES["texto2"],
-                    }),
-                ],
-            ),
-            html.Div(id="panel-situacion",
-                     style=_card({"marginBottom": "14px"})),
-            html.Div(id="kpi-row", className="Argo-kpi-row",
-                     style={"marginBottom": "14px"}),
-            html.Div(
-                className="Argo-zona2-paneles",
-                style={"marginBottom": "28px"},
-                children=[
-                    html.Div(id="panel-pareto",          style=_card()),
-                    html.Div(id="panel-leading-lagging", style=_card()),
-                    html.Div(id="panel-bullet",          style=_card()),
-                ],
-            ),
-
-            # ═══════════════════════════════════════════════════
-            # ZONA AGRO — Decisión de venta agropecuaria
-            # Solo visible para empresas del sector agro
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                id="zona-agro-wrapper",
-                style={"marginBottom": "14px"},
-                children=[
-                    html.Div(
-                        style={
+                    # ── SCORE PRINCIPAL ──────────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
                             "display": "flex", "alignItems": "center",
-                            "gap": "12px", "marginBottom": "12px",
-                        },
+                            "gap": "8px", "marginBottom": "14px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["ALTO"],
+                                           "borderRadius": "2px"}),
+                            html.Div(id="score-zona-label", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }, children="Riesgo operacional"),
+                        ]),
+                        html.Div(style={"display": "flex", "alignItems": "flex-start", "gap": "20px"},
                         children=[
-                            html.Div(style={
-                                "width": "4px", "height": "18px",
-                                "backgroundColor": COLORES["BAJO"], "borderRadius": "2px",
-                            }),
-                            html.Div("Zona Agro — Decisión de venta", style={
-                                "fontSize": "11px", "fontWeight": "500",
+                            html.Div(id="panel-score"),
+                            html.Div(style={"flex": "1"}, children=[
+                                html.Div(id="panel-situacion"),
+                            ]),
+                        ]),
+                    ]),
+
+                    # ── KPIs FILA ────────────────────────────
+                    html.Div(id="kpi-row", className="Argo-kpi-row"),
+
+                    # ── ALERTAS ──────────────────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["CRITICO"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Alertas activas", style={
+                                "fontSize": "10px", "fontWeight": "700",
                                 "color": COLORES["texto2"], "textTransform": "uppercase",
                                 "letterSpacing": "0.08em",
                             }),
+                        ]),
+                        html.Div(id="panel-alertas"),
+                    ]),
+
+                    # ── PRECIOS CBOT ─────────────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["azul"],
+                                           "borderRadius": "2px"}),
+                            html.Div(id="global-timestamp", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }, children="Precios CBOT Chicago"),
+                        ]),
+                        html.Div(id="panel-global-precios"),
+                    ]),
+
+                    # ── ZONA AGRO ────────────────────────────
+                    html.Div(
+                        id="zona-agro-wrapper",
+                        style=_card(),
+                        children=[
+                            html.Div(style={
+                                "display": "flex", "alignItems": "center",
+                                "gap": "8px", "marginBottom": "12px",
+                            }, children=[
+                                html.Div(style={"width": "3px", "height": "14px",
+                                               "backgroundColor": COLORES["BAJO"],
+                                               "borderRadius": "2px"}),
+                                html.Div("Decisión de venta agropecuaria", style={
+                                    "fontSize": "10px", "fontWeight": "700",
+                                    "color": COLORES["texto2"], "textTransform": "uppercase",
+                                    "letterSpacing": "0.08em",
+                                }),
+                            ]),
+                            html.Div(id="panel-agro-decision"),
                         ],
                     ),
-                    html.Div(id="panel-agro-decision", style=_card()),
-                ],
-            ),
 
-            # ═══════════════════════════════════════════════════
-            # ZONA 3 — ANÁLISIS   Escenarios y detalle
-            # ═══════════════════════════════════════════════════
-            html.Div(
-                style={"display": "flex", "alignItems": "center",
-                       "gap": "12px", "marginBottom": "12px"},
-                children=[
+                    # ── ZONA 3 ANÁLISIS ──────────────────────
                     html.Div(style={
-                        "width": "4px", "height": "18px",
-                        "backgroundColor": COLORES["borde"], "borderRadius": "2px",
-                    }),
-                    html.Div("Zona 3 — Análisis profundo", style={
-                        "fontSize": "11px", "fontWeight": "500",
-                        "color": COLORES["texto2"], "textTransform": "uppercase",
-                        "letterSpacing": "0.08em",
-                    }),
-                    html.Button(
-                        "▼  Ver análisis completo",
-                        id="btn-zona3",
-                        style={
-                            "fontSize": "11px", "color": COLORES["texto2"],
-                            "backgroundColor": "transparent",
-                            "border": f"0.5px solid {COLORES['borde']}",
-                            "borderRadius": "6px", "padding": "4px 12px",
-                            "cursor": "pointer",
-                        },
-                    ),
-                ],
-            ),
-            html.Div(id="zona3-contenido", style={"display": "none"}, children=[
-                html.Div(
-                    className="Argo-zona3-top",
-                    style={"marginBottom": "14px"},
-                    children=[
-                        html.Div(id="panel-ranking",    style=_card()),
-                        html.Div(id="panel-montecarlo", style=_card()),
-                    ],
-                ),
-                html.Div(
-                    className="Argo-zona3-bottom",
-                    style={"marginBottom": "14px"},
-                    children=[
-                        html.Div(id="panel-matriz", style=_card()),
-                        html.Div(id="panel-sitrep", style=_card()),
-                    ],
-                ),
-            ]),
-        ]),
+                        "display": "flex", "alignItems": "center",
+                        "gap": "10px", "marginTop": "4px",
+                    }, children=[
+                        html.Div(style={"width": "3px", "height": "14px",
+                                       "backgroundColor": COLORES["borde"],
+                                       "borderRadius": "2px"}),
+                        html.Div("Análisis profundo", style={
+                            "fontSize": "10px", "fontWeight": "700",
+                            "color": COLORES["texto2"], "textTransform": "uppercase",
+                            "letterSpacing": "0.08em",
+                        }),
+                        html.Button(
+                            "▼ Ver análisis completo",
+                            id="btn-zona3",
+                            style={
+                                "fontSize": "11px", "color": COLORES["texto2"],
+                                "backgroundColor": "transparent",
+                                "border": f"0.5px solid {COLORES['borde']}",
+                                "borderRadius": "6px", "padding": "4px 12px",
+                                "cursor": "pointer",
+                            },
+                        ),
+                    ]),
+                    html.Div(id="zona3-contenido", style={"display": "none"}, children=[
+                        html.Div(style={
+                            "display": "grid", "gridTemplateColumns": "1fr 1fr",
+                            "gap": "12px", "marginTop": "12px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(id="panel-ranking",    style=_card()),
+                            html.Div(id="panel-montecarlo", style=_card()),
+                        ]),
+                        html.Div(style={
+                            "display": "grid", "gridTemplateColumns": "1fr 1fr",
+                            "gap": "12px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(id="panel-matriz", style=_card()),
+                            html.Div(id="panel-sitrep", style=_card()),
+                        ]),
+                        html.Div(style={
+                            "display": "grid", "gridTemplateColumns": "1fr 1fr 1fr",
+                            "gap": "12px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(id="panel-pareto",          style=_card()),
+                            html.Div(id="panel-leading-lagging", style=_card()),
+                            html.Div(id="panel-bullet",          style=_card()),
+                        ]),
+                    ]),
 
-        # Stores
-        dcc.Store(id="store-sitrep"),
-        dcc.Store(id="store-montecarlo"),
-        dcc.Store(id="store-history"),
-        dcc.Store(id="store-datasource"),
-        dcc.Interval(id="auto-refresh", interval=300_000, n_intervals=0),
+                ]),  # fin columna izquierda
+
+                # ══ COLUMNA DERECHA ════════════════════════════
+                html.Div(style={"display": "flex", "flexDirection": "column", "gap": "12px"},
+                children=[
+
+                    # ── SEMÁFORO + ESTADO ────────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["MEDIO"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Estado por categoría", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-semaforo"),
+                    ]),
+
+                    # ── SEÑALES DE MERCADO ───────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["MEDIO"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Señales de mercado mundial", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-global-señales"),
+                    ]),
+
+                    # ── RANKING PRODUCTORES ──────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["BAJO"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Top 10 productores — Soja", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-global-ranking"),
+                    ]),
+
+                    # ── OFERTA Y DEMANDA USDA ────────────────
+                    html.Div(style=_card(), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "12px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["azul"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Oferta y demanda mundial", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-global-usda"),
+                    ]),
+
+                    # ── MAPA AGRO ────────────────────────────
+                    html.Div(style=_card({"padding": "10px 12px"}), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "8px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["azul"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Zonas agrícolas", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-mapa"),
+                    ]),
+
+                    # ── DATASOURCE BADGE ─────────────────────
+                    html.Div(id="datasource-badge"),
+
+                ]),  # fin columna derecha
+
+            ]),  # fin grilla principal
+
+            # ── Stores e Intervals ───────────────────────────
+            dcc.Store(id="store-sitrep"),
+            dcc.Store(id="store-montecarlo"),
+            dcc.Store(id="store-history"),
+            dcc.Store(id="store-datasource"),
+            dcc.Interval(id="auto-refresh", interval=5*60*1000, n_intervals=0),
+
+        ]),  # fin padding div
     ],
-)
+)  # fin app.layout
 
 
 # ════════════════════════════════════════════════════════════
 # CALLBACKS
 # ════════════════════════════════════════════════════════════
+
+# ── Score zona label ─────────────────────────────────────────
+@app.callback(
+    Output("score-zona-label", "children"),
+    Input("store-sitrep", "data"),
+)
+def actualizar_score_zona_label(data):
+    if not data:
+        return "Riesgo operacional"
+    ctx = data.get("contexto_label") or data.get("zona_label", "")
+    return f"Riesgo operacional — {ctx}" if ctx else "Riesgo operacional"
+
 
 # ── 1. Análisis principal ────────────────────────────────────
 @app.callback(
@@ -1803,11 +1879,11 @@ def actualizar_mapa(data, empresa_id):
         fig.add_trace(go.Scattermapbox(
             lat=[emp_lat], lon=[emp_lon],
             mode="markers+text",
-            marker=dict(size=16, color=COLORES["azul"],
+            marker=dict(size=16, color="#378ADD",
                         symbol="star"),
             text=[emp_label.split()[0]],
             textposition="top right",
-            textfont=dict(size=10, color=COLORES["azul"]),
+            textfont=dict(size=10, color="#378ADD"),
             hovertext=[f"<b>{emp_label}</b>"],
             hoverinfo="text",
             name="Empresa",
@@ -1824,7 +1900,7 @@ def actualizar_mapa(data, empresa_id):
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
         hoverlabel=dict(bgcolor="#0D1B2A", bordercolor=COLORES["borde"],
-                        font=dict(size=11, color=COLORES["texto"], family="system-ui")),
+                        font=dict(size=11, color="#E8E6E0", family="system-ui")),
     )
 
     # Leyenda compacta
@@ -1835,28 +1911,28 @@ def actualizar_mapa(data, empresa_id):
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": COLORES["BAJO"]}),
+                                         "borderRadius": "50%", "backgroundColor": "#639922"}),
                          html.Div("Alta aptitud", style={"fontSize": "10px",
                                                           "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": COLORES["MEDIO"]}),
+                                         "borderRadius": "50%", "backgroundColor": "#BA7517"}),
                          html.Div("Media aptitud", style={"fontSize": "10px",
                                                            "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": COLORES["ALTO"]}),
+                                         "borderRadius": "50%", "backgroundColor": "#D85A30"}),
                          html.Div("Baja aptitud", style={"fontSize": "10px",
                                                           "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": COLORES["azul"]}),
+                                         "borderRadius": "50%", "backgroundColor": "#378ADD"}),
                          html.Div("Puerto Rosario", style={"fontSize": "10px",
                                                             "color": COLORES["texto2"]}),
                      ]),
