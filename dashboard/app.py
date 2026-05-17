@@ -91,20 +91,35 @@ except (ImportError, Exception) as _e:
 
 # ── Paleta Argo ────────────────────────────────────────────
 COLORES = {
-    "CRITICO":       "#E24B4A",
-    "ALTO":          "#D85A30",
-    "MEDIO":         "#BA7517",
-    "BAJO":          "#639922",
+    # ── Niveles de riesgo — vivos y con contraste ────────────
+    "CRITICO":       "#FF5F5E",
+    "ALTO":          "#FF7040",
+    "MEDIO":         "#F0A030",
+    "BAJO":          "#7EC832",
+
+    # ── Fondos de riesgo ─────────────────────────────────────
+    "fondo_critico": "rgba(255, 95, 94, 0.12)",
+    "fondo_alto":    "rgba(255, 112, 64, 0.12)",
+    "fondo_medio":   "rgba(240, 160, 48, 0.10)",
+    "fondo_bajo":    "rgba(126, 200, 50, 0.10)",
+
+    # ── Bordes de riesgo ─────────────────────────────────────
+    "borde_critico": "rgba(255, 95, 94, 0.40)",
+    "borde_alto":    "rgba(255, 112, 64, 0.40)",
+    "borde_medio":   "rgba(240, 160, 48, 0.35)",
+    "borde_bajo":    "rgba(126, 200, 50, 0.35)",
+
+    # ── Superficies ──────────────────────────────────────────
     "fondo":         "transparent",
-    "fondo_critico": "rgba(226, 75, 74, 0.15)",
-    "fondo_alto":    "rgba(216, 90, 48, 0.15)",
-    "fondo_medio":   "rgba(186, 117, 23, 0.15)",
-    "fondo_bajo":    "rgba(99, 153, 34, 0.15)",
-    "card":          "rgba(255, 255, 255, 0.05)",
-    "borde":         "rgba(55, 138, 221, 0.25)",
-    "texto":         "#E8E6E0",
-    "texto2":        "#8A8880",
-    "azul":          "#378ADD",
+    "card":          "rgba(16, 28, 48, 0.95)",
+    "borde":         "rgba(255, 255, 255, 0.09)",
+
+    # ── Tipografía — máximo contraste ────────────────────────
+    "texto":         "#F0EEE8",
+    "texto2":        "#8A9CB4",
+
+    # ── Acento ───────────────────────────────────────────────
+    "azul":          "#4DA3F0",
 }
 
 import logging
@@ -182,9 +197,11 @@ def _merge_lecturas(
 def _card(extra: dict | None = None) -> dict:
     base = {
         "backgroundColor": COLORES["card"],
-        "border": f"0.5px solid {COLORES['borde']}",
-        "borderRadius": "12px",
-        "padding": "16px 18px",
+        "border":          f"1px solid {COLORES['borde']}",
+        "borderTop":       "1px solid rgba(255,255,255,0.13)",
+        "borderRadius":    "12px",
+        "padding":         "16px 18px",
+        "boxShadow":       "0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.4)",
     }
     if extra:
         base.update(extra)
@@ -192,8 +209,8 @@ def _card(extra: dict | None = None) -> dict:
 
 def _lbl(texto: str) -> html.Div:
     return html.Div(texto, style={
-        "fontSize": "11px", "color": COLORES["texto2"], "fontWeight": "500",
-        "textTransform": "uppercase", "letterSpacing": "0.05em", "marginBottom": "10px",
+        "fontSize": "10px", "color": COLORES["texto2"], "fontWeight": "700",
+        "textTransform": "uppercase", "letterSpacing": "0.08em", "marginBottom": "10px",
     })
 
 
