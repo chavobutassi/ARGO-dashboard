@@ -220,7 +220,7 @@ EMPRESAS: dict = {
     "transportadora": {
         "label": "Transportadora del Sur S.A.",
         "config": _cfg("config/transportadora_ejemplo.json"),
-        "color": "#378ADD",
+        "color": COLORES["azul"],
         "lat": -38.72, "lon": -62.27, "lugar": "Bahía Blanca",
         "lecturas_default": {
             "precipitacion_mm": 65.0,
@@ -235,7 +235,7 @@ EMPRESAS: dict = {
     "agro": {
         "label": "Cooperativa Agropecuaria Pampa Sur",
         "config": _cfg("config/agro_ejemplo.json"),
-        "color": "#639922",
+        "color": COLORES["BAJO"],
         "lat": -37.32, "lon": -63.24, "lugar": "Santa Rosa, La Pampa",
         "lecturas_default": {
             "precipitacion_acumulada_mm": 12.0,
@@ -250,7 +250,7 @@ EMPRESAS: dict = {
     "ypf": {
         "label": "YPF Vaca Muerta",
         "config": _cfg("config/ypf_vaca_muerta.json"),
-        "color": "#E24B4A",
+        "color": COLORES["CRITICO"],
         "lat": -38.95, "lon": -68.07, "lugar": "Neuquén, Vaca Muerta",
         "lecturas_default": {
             "equipos_produccion_fuera_servicio": 1.0,
@@ -264,7 +264,7 @@ EMPRESAS: dict = {
     "pan_american": {
         "label": "Pan American Energy S.A.",
         "config": _cfg("config/pan_american.json"),
-        "color": "#D85A30",
+        "color": COLORES["ALTO"],
         "lat": -38.9516, "lon": -68.0591, "lugar": "Neuquén, Vaca Muerta",
         "lecturas_default": {
             "equipos_produccion_fuera_servicio": 2.0,
@@ -279,7 +279,7 @@ EMPRESAS: dict = {
     "andreani": {
         "label": "Andreani Logística S.A.",
         "config": _cfg("config/andreani.json"),
-        "color": "#378ADD",
+        "color": COLORES["azul"],
         "lat": -34.6037, "lon": -58.3816, "lugar": "Buenos Aires (GBA)",
         "lecturas_default": {
             "precipitacion_mm": 8.0, "viento_kmh": 22.0, "temperatura_c": 17.0,
@@ -291,7 +291,7 @@ EMPRESAS: dict = {
     "aca_agro": {
         "label": "ACA Agropecuaria Coop. Ltda.",
         "config": _cfg("config/aca_agro.json"),
-        "color": "#639922",
+        "color": COLORES["BAJO"],
         "lat": -32.9468, "lon": -60.6393, "lugar": "Rosario, Santa Fe",
         "lecturas_default": {
             "precipitacion_acumulada_mm": 38.0, "indice_sequia_palmer": -0.8,
@@ -353,34 +353,34 @@ for _key, _emp in EMPRESAS.items():
 # ── Zonas agrícolas de Argentina para el mapa ────────────────
 ZONAS_AGRO_MAPA = [
     {"nombre": "Pampa Húmeda Norte",  "lat": -33.0, "lon": -61.0,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 14000, "color": "#639922", "size": 22},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 14000, "color": COLORES["BAJO"], "size": 22},
     {"nombre": "Pampa Húmeda Centro", "lat": -35.0, "lon": -62.0,
-     "cultivo": "Soja/Maíz", "aptitud": "Alta", "flete_ars_tn": 16000, "color": "#639922", "size": 22},
+     "cultivo": "Soja/Maíz", "aptitud": "Alta", "flete_ars_tn": 16000, "color": COLORES["BAJO"], "size": 22},
     {"nombre": "Santa Fe Centro",     "lat": -31.5, "lon": -61.5,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 12000, "color": "#639922", "size": 20},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 12000, "color": COLORES["BAJO"], "size": 20},
     {"nombre": "Entre Ríos",          "lat": -32.0, "lon": -58.5,
-     "cultivo": "Soja/Trigo", "aptitud": "Alta", "flete_ars_tn": 18000, "color": "#639922", "size": 18},
+     "cultivo": "Soja/Trigo", "aptitud": "Alta", "flete_ars_tn": 18000, "color": COLORES["BAJO"], "size": 18},
     {"nombre": "Córdoba Sur",         "lat": -33.5, "lon": -63.5,
-     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 20000, "color": "#639922", "size": 20},
+     "cultivo": "Soja",  "aptitud": "Alta",  "flete_ars_tn": 20000, "color": COLORES["BAJO"], "size": 20},
     {"nombre": "Córdoba Norte",       "lat": -30.5, "lon": -63.5,
-     "cultivo": "Maíz",  "aptitud": "Media", "flete_ars_tn": 24000, "color": "#BA7517", "size": 16},
+     "cultivo": "Maíz",  "aptitud": "Media", "flete_ars_tn": 24000, "color": COLORES["MEDIO"], "size": 16},
     {"nombre": "Buenos Aires Norte",  "lat": -35.0, "lon": -60.0,
-     "cultivo": "Trigo/Soja", "aptitud": "Alta", "flete_ars_tn": 15000, "color": "#639922", "size": 18},
+     "cultivo": "Trigo/Soja", "aptitud": "Alta", "flete_ars_tn": 15000, "color": COLORES["BAJO"], "size": 18},
     {"nombre": "Buenos Aires Sur",    "lat": -38.0, "lon": -60.5,
-     "cultivo": "Trigo/Girasol", "aptitud": "Media", "flete_ars_tn": 22000, "color": "#BA7517", "size": 16},
+     "cultivo": "Trigo/Girasol", "aptitud": "Media", "flete_ars_tn": 22000, "color": COLORES["MEDIO"], "size": 16},
     {"nombre": "La Pampa Este",       "lat": -36.5, "lon": -64.5,
-     "cultivo": "Trigo",  "aptitud": "Media", "flete_ars_tn": 26000, "color": "#BA7517", "size": 14},
+     "cultivo": "Trigo",  "aptitud": "Media", "flete_ars_tn": 26000, "color": COLORES["MEDIO"], "size": 14},
     {"nombre": "La Pampa Oeste",      "lat": -37.5, "lon": -67.0,
-     "cultivo": "Ganadería", "aptitud": "Baja", "flete_ars_tn": 32000, "color": "#D85A30", "size": 12},
+     "cultivo": "Ganadería", "aptitud": "Baja", "flete_ars_tn": 32000, "color": COLORES["ALTO"], "size": 12},
     {"nombre": "Chaco",               "lat": -27.0, "lon": -61.0,
-     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 34000, "color": "#BA7517", "size": 14},
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 34000, "color": COLORES["MEDIO"], "size": 14},
     {"nombre": "Santiago del Estero", "lat": -28.0, "lon": -63.5,
-     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 30000, "color": "#BA7517", "size": 14},
+     "cultivo": "Soja",  "aptitud": "Media", "flete_ars_tn": 30000, "color": COLORES["MEDIO"], "size": 14},
     {"nombre": "Tucumán",             "lat": -27.0, "lon": -65.5,
-     "cultivo": "Soja/Caña", "aptitud": "Media", "flete_ars_tn": 32000, "color": "#BA7517", "size": 13},
+     "cultivo": "Soja/Caña", "aptitud": "Media", "flete_ars_tn": 32000, "color": COLORES["MEDIO"], "size": 13},
     {"nombre": "Puerto Rosario ⚓",   "lat": -32.95, "lon": -60.64,
      "cultivo": "Destino exportación", "aptitud": "—", "flete_ars_tn": 0,
-     "color": "#378ADD", "size": 18},
+     "color": COLORES["azul"], "size": 18},
 ]
 
 
@@ -1803,11 +1803,11 @@ def actualizar_mapa(data, empresa_id):
         fig.add_trace(go.Scattermapbox(
             lat=[emp_lat], lon=[emp_lon],
             mode="markers+text",
-            marker=dict(size=16, color="#378ADD",
+            marker=dict(size=16, color=COLORES["azul"],
                         symbol="star"),
             text=[emp_label.split()[0]],
             textposition="top right",
-            textfont=dict(size=10, color="#378ADD"),
+            textfont=dict(size=10, color=COLORES["azul"]),
             hovertext=[f"<b>{emp_label}</b>"],
             hoverinfo="text",
             name="Empresa",
@@ -1824,7 +1824,7 @@ def actualizar_mapa(data, empresa_id):
         paper_bgcolor="rgba(0,0,0,0)",
         showlegend=False,
         hoverlabel=dict(bgcolor="#0D1B2A", bordercolor=COLORES["borde"],
-                        font=dict(size=11, color="#E8E6E0", family="system-ui")),
+                        font=dict(size=11, color=COLORES["texto"], family="system-ui")),
     )
 
     # Leyenda compacta
@@ -1835,28 +1835,28 @@ def actualizar_mapa(data, empresa_id):
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": "#639922"}),
+                                         "borderRadius": "50%", "backgroundColor": COLORES["BAJO"]}),
                          html.Div("Alta aptitud", style={"fontSize": "10px",
                                                           "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": "#BA7517"}),
+                                         "borderRadius": "50%", "backgroundColor": COLORES["MEDIO"]}),
                          html.Div("Media aptitud", style={"fontSize": "10px",
                                                            "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": "#D85A30"}),
+                                         "borderRadius": "50%", "backgroundColor": COLORES["ALTO"]}),
                          html.Div("Baja aptitud", style={"fontSize": "10px",
                                                           "color": COLORES["texto2"]}),
                      ]),
             html.Div(style={"display": "flex", "alignItems": "center", "gap": "4px"},
                      children=[
                          html.Div(style={"width": "8px", "height": "8px",
-                                         "borderRadius": "50%", "backgroundColor": "#378ADD"}),
+                                         "borderRadius": "50%", "backgroundColor": COLORES["azul"]}),
                          html.Div("Puerto Rosario", style={"fontSize": "10px",
                                                             "color": COLORES["texto2"]}),
                      ]),
