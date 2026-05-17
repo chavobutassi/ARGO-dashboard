@@ -88,6 +88,15 @@ except (ImportError, Exception) as _e:
     _conector_global = None
     print(f"[Argo] Aviso: connectors_global.py no disponible — panel global desactivado. ({_e})")
 
+try:
+    from data.connectors_logistica import ConectorLogistica
+    _conector_logistica: "ConectorLogistica | None" = ConectorLogistica()
+    LOGISTICA_DISPONIBLE = True
+except (ImportError, Exception) as _e:
+    LOGISTICA_DISPONIBLE = False
+    _conector_logistica = None
+    print(f"[Argo] Aviso: connectors_logistica.py no disponible — panel logística desactivado. ({_e})")
+
 
 # ── Paleta Argo ────────────────────────────────────────────
 COLORES = {
@@ -979,6 +988,24 @@ app.layout = html.Div(
 
                     # ── DATASOURCE BADGE ─────────────────────
                     html.Div(id="datasource-badge"),
+
+                    # ── RED LOGÍSTICA ─────────────────────────
+                    html.Div(style=_card({"padding": "12px 14px"}), children=[
+                        html.Div(style={
+                            "display": "flex", "alignItems": "center",
+                            "gap": "8px", "marginBottom": "10px",
+                        }, children=[
+                            html.Div(style={"width": "3px", "height": "14px",
+                                           "backgroundColor": COLORES["azul"],
+                                           "borderRadius": "2px"}),
+                            html.Div("Red logística — Puerto óptimo", style={
+                                "fontSize": "10px", "fontWeight": "700",
+                                "color": COLORES["texto2"], "textTransform": "uppercase",
+                                "letterSpacing": "0.08em",
+                            }),
+                        ]),
+                        html.Div(id="panel-logistica"),
+                    ]),
 
                 ]),  # fin columna derecha
 
@@ -2533,6 +2560,129 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
         ))
 
     return [header, desc_div, kpis, factores_div, *alertas], visible
+
+
+# ── Red logística — Puerto óptimo ───────────────────────────
+@app.callback(
+    Output("panel-logistica", "children"),
+    Input("zona-selector",    "value"),
+    Input("cultivo-selector", "value"),
+    Input("store-sitrep",     "data"),
+)
+def actualizar_panel_logistica(zona, cultivo, sitrep_data):
+    if not LOGISTICA_DISPONIBLE:
+        return [html.Div("Módulo logístico no disponible.",
+                         style={"fontSize": "12px", "color": COLORES["texto2"]})]
+
+    zona    = zona    or "pampa_humeda"
+    cultivo = cultivo or "soja"
+
+    # Obtener precio y TC del sitrep si está disponible
+    precio_usd = 370.0
+    tc_ars     = 1390.0
+    if sitrep_data:
+        from data.connectors_global import ConectorGlobal
+        try:
+            precios = _conector_global.precios_globales_cbot() if _conector_global else {}
+            p = precios.get(cultivo, {})
+            if p and p.get("precio"):
+                precio_usd = p["precio"]
+        except Exception:
+            pass
+
+    try:
+        resultado = _conector_logistica.puerto_optimo(
+            zona, cultivo, precio_usd_tn=precio_usd, tc_ars_usd=tc_ars
+        )
+    except Exception as e:
+        return [html.Div(f"Error: {e}",
+                         style={"fontSize": "12px", "color": COLORES["texto2"]})]
+
+    if "error" in resultado:
+        return [html.Div(resultado["error"],
+                         style={"fontSize": "12px", "color": COLORES["texto2"]})]
+
+    mejor     = resultado["puerto_recomendado"]
+    flete_opt = resultado["flete_optimo_ars_tn"]
+    neto      = resultado["precio_neto_ars_tn"]
+    neto_usd  = resultado["precio_neto_usd_tn"]
+    ahorro    = resultado["ahorro_ars_tn"]
+    empresas  = resultado["empresas_destino"]
+    comparativa = resultado["comparativa"]
+
+    # ── Badge puerto recomendado ──────────────────────────────
+    header = html.Div(style={
+        "backgroundColor": COLORES["fondo_bajo"],
+        "border": f"1px solid {COLORES['BAJO']}",
+        "borderRadius": "8px", "padding": "10px 12px", "marginBottom": "10px",
+    }, children=[
+        html.Div(style={"display": "flex", "justifyContent": "space-between",
+                        "alignItems": "center"}, children=[
+            html.Div(mejor, style={
+                "fontSize": "14px", "fontWeight": "700", "color": COLORES["BAJO"],
+            }),
+            html.Div(f"${flete_opt:,}/tn", style={
+                "fontSize": "12px", "color": COLORES["texto2"],
+            }),
+        ]),
+        html.Div(style={"display": "flex", "gap": "16px", "marginTop": "6px"}, children=[
+            html.Div(style={"display": "flex", "flexDirection": "column"}, children=[
+                html.Div("Precio neto", style={"fontSize": "9px", "color": COLORES["texto2"],
+                                               "textTransform": "uppercase",
+                                               "letterSpacing": "0.06em"}),
+                html.Div(f"USD {neto_usd:.2f}/tn", style={
+                    "fontSize": "13px", "fontWeight": "600", "color": COLORES["texto"],
+                }),
+            ]),
+            html.Div(style={"display": "flex", "flexDirection": "column"}, children=[
+                html.Div("Ahorro vs 2°", style={"fontSize": "9px", "color": COLORES["texto2"],
+                                                "textTransform": "uppercase",
+                                                "letterSpacing": "0.06em"}),
+                html.Div(f"${ahorro:,.0f}/tn", style={
+                    "fontSize": "13px", "fontWeight": "600", "color": COLORES["BAJO"],
+                }),
+            ]),
+        ]),
+        html.Div(f"Compradores: {', '.join(empresas[:3])}", style={
+            "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "6px",
+        }),
+    ])
+
+    # ── Comparativa todos los puertos ────────────────────────
+    filas = [_lbl("Comparativa de puertos")]
+    for p in comparativa:
+        if not p["acepta_cultivo"]:
+            continue
+        es_mejor = p["puerto_id"] == resultado["puerto_id"]
+        color_fila = COLORES["BAJO"] if es_mejor else COLORES["texto2"]
+        filas.append(html.Div(style={
+            "display": "flex", "justifyContent": "space-between",
+            "alignItems": "center", "padding": "6px 0",
+            "borderBottom": f"0.5px solid {COLORES['borde']}",
+        }, children=[
+            html.Div(style={"display": "flex", "alignItems": "center", "gap": "6px"},
+                     children=[
+                html.Div(style={"width": "6px", "height": "6px", "borderRadius": "50%",
+                                "backgroundColor": COLORES["BAJO"] if es_mejor
+                                else COLORES["borde"]}),
+                html.Div(p["puerto_label"], style={
+                    "fontSize": "12px", "fontWeight": "600" if es_mejor else "400",
+                    "color": COLORES["texto"] if es_mejor else COLORES["texto2"],
+                }),
+            ]),
+            html.Div(style={"display": "flex", "gap": "12px", "alignItems": "center"},
+                     children=[
+                html.Div(f"${p['flete_ars_tn']:,}/tn flete", style={
+                    "fontSize": "10px", "color": COLORES["texto2"],
+                }),
+                html.Div(f"USD {p['precio_neto_usd']:.2f}/tn", style={
+                    "fontSize": "12px", "fontWeight": "600",
+                    "color": color_fila,
+                }),
+            ]),
+        ]))
+
+    return [header, *filas]
 
 
 # ── Entry point ──────────────────────────────────────────────
