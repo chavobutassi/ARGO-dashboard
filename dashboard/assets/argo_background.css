@@ -1,14 +1,7 @@
 /*
- * ARGO — Tema visual dark v4
- * dashboard/assets/argo_background.css
- *
- * Mejoras vs v3:
- *   - Cards más visibles y con mejor contraste
- *   - Tipografía con más jerarquía (tamaños diferenciados)
- *   - Scores grandes con glow sutil
- *   - Alertas y badges más legibles
- *   - Paneles KPI compactos y claros
- *   - Mapa con contraste mejorado
+ * ARGO — Tema visual dark v5
+ * Foco: máximo contraste de texto + cards bien definidas
+ * + colores de riesgo vivos y legibles
  */
 
 /* ══════════════════════════════════════════════════
@@ -16,22 +9,22 @@
    ══════════════════════════════════════════════════ */
 
 html, body {
-  background-color: #0B1520 !important;
+  background-color: #08111E !important;
   min-height: 100vh;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
   font-size: 13px;
-  line-height: 1.55;
-  color: #CED0D6;
+  line-height: 1.6;
+  color: #E2E4EA;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   background-image:
-    linear-gradient(rgba(55,138,221,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.05) 1px, transparent 1px),
-    linear-gradient(rgba(55,138,221,0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(55,138,221,0.018) 1px, transparent 1px) !important;
+    linear-gradient(rgba(55,138,221,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.04) 1px, transparent 1px),
+    linear-gradient(rgba(55,138,221,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(55,138,221,0.015) 1px, transparent 1px) !important;
   background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px !important;
 }
 
@@ -41,7 +34,7 @@ body::before {
   top: -200px; left: 0;
   width: 100%; height: 500px;
   z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse 60% 50% at 20% 0%, rgba(55,138,221,0.09) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 50% at 20% 0%, rgba(55,138,221,0.08) 0%, transparent 70%);
 }
 
 body::after {
@@ -50,7 +43,7 @@ body::after {
   bottom: -150px; right: 0;
   width: 600px; height: 400px;
   z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse, rgba(99,153,34,0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(99,153,34,0.05) 0%, transparent 70%);
 }
 
 /* ══════════════════════════════════════════════════
@@ -74,90 +67,138 @@ body > div { background-color: transparent !important; }
    ══════════════════════════════════════════════════ */
 
 body > div > div:first-child {
-  background-color: rgba(6, 12, 22, 0.97) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
-  border-bottom: 1px solid rgba(55,138,221,0.15) !important;
-  box-shadow: 0 2px 32px rgba(0,0,0,0.4) !important;
+  background-color: rgba(4, 8, 16, 0.98) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-bottom: 1px solid rgba(55,138,221,0.18) !important;
+  box-shadow: 0 1px 0 rgba(55,138,221,0.08), 0 4px 32px rgba(0,0,0,0.5) !important;
 }
 
 /* ══════════════════════════════════════════════════
-   JERARQUÍA TIPOGRÁFICA
+   TIPOGRAFÍA — máximo contraste
    ══════════════════════════════════════════════════ */
 
-/* Títulos principales */
 h1, h2, h3 {
-  color: #EAE8E2 !important;
+  color: #F4F2EC !important;
   font-weight: 600 !important;
   letter-spacing: -0.02em;
 }
 
 h4, h5, h6 {
-  color: #CED0D6 !important;
+  color: #E2E4EA !important;
   font-weight: 500 !important;
 }
 
-/* Labels tipo uppercase — sección */
+/* Labels uppercase de sección */
 div[style*="textTransform: uppercase"],
 div[style*="text-transform: uppercase"] {
-  color: #6A7D94 !important;
+  color: #7A8EA8 !important;
   letter-spacing: 0.08em !important;
   font-size: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
 }
 
-/* Texto cuerpo */
-p, span, label { color: #A8AAB0; }
+/* Texto principal — blanco nítido */
+p, span, label { color: #C8CAD0; }
 
-/* Score número grande — hereda el color de riesgo */
+/* Texto secundario — gris medio claro */
+div[style*="color: \"#8A8880\""],
+div[style*="color: \"#6B6B65\""],
+div[style*="color: \"#8A9BB0\""] {
+  color: #8A9CB4 !important;
+}
+
+/* Score número grande */
 div[style*="fontSize: \"64px\""],
 div[style*="fontSize: \"52px\""],
 div[style*="fontSize: \"48px\""] {
   color: inherit !important;
-  filter: drop-shadow(0 0 20px currentColor);
   line-height: 1 !important;
 }
 
 /* ══════════════════════════════════════════════════
-   CARDS — glassmorphism calibrado
+   CARDS — bien diferenciadas del fondo
    ══════════════════════════════════════════════════ */
 
 .card {
-  background-color: rgba(14, 24, 40, 0.9) !important;
-  border: 1px solid rgba(55,138,221,0.12) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background-color: rgba(16, 28, 48, 0.95) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-top: 1px solid rgba(255,255,255,0.12) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   border-radius: 12px !important;
   box-shadow:
-    0 1px 0 rgba(255,255,255,0.04) inset,
-    0 4px 24px rgba(0,0,0,0.3) !important;
-  color: #CED0D6 !important;
+    0 1px 0 rgba(255,255,255,0.06) inset,
+    0 8px 32px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.6) !important;
+  color: #E2E4EA !important;
 }
 
 /* ══════════════════════════════════════════════════
-   ZONE HEADERS — linea coloreada a la izquierda
+   COLORES DE RIESGO — vivos y con contraste
    ══════════════════════════════════════════════════ */
 
-/* ZONA 1 OPERADOR */
-[style*="ZONA 1"],
-[style*="Zona 1"],
-[style*="OPERADOR"] {
-  font-size: 11px !important;
+/* CRÍTICO — rojo brillante */
+div[style*="#E24B4A"],
+span[style*="#E24B4A"] {
+  color: #FF5F5E !important;
+  text-shadow: 0 0 20px rgba(255,95,94,0.6) !important;
+}
+
+/* ALTO — naranja intenso */
+div[style*="#D85A30"],
+span[style*="#D85A30"] {
+  color: #FF7040 !important;
+  text-shadow: 0 0 18px rgba(255,112,64,0.55) !important;
+}
+
+/* MEDIO — amarillo dorado */
+div[style*="#BA7517"],
+span[style*="#BA7517"] {
+  color: #F0A030 !important;
+  text-shadow: 0 0 14px rgba(240,160,48,0.5) !important;
+}
+
+/* BAJO — verde nítido */
+div[style*="#639922"],
+span[style*="#639922"] {
+  color: #7EC832 !important;
+  text-shadow: 0 0 14px rgba(126,200,50,0.5) !important;
+}
+
+/* Fondos de riesgo — más visibles */
+div[style*="fondo_critico"],
+div[style*="rgba(226, 75, 74, 0.15)"] {
+  background-color: rgba(255,95,94,0.12) !important;
+  border-color: rgba(255,95,94,0.35) !important;
+}
+
+div[style*="fondo_alto"],
+div[style*="rgba(216, 90, 48, 0.15)"] {
+  background-color: rgba(255,112,64,0.12) !important;
+  border-color: rgba(255,112,64,0.35) !important;
+}
+
+div[style*="fondo_medio"],
+div[style*="rgba(186, 117, 23, 0.15)"] {
+  background-color: rgba(240,160,48,0.1) !important;
+  border-color: rgba(240,160,48,0.3) !important;
+}
+
+div[style*="fondo_bajo"],
+div[style*="rgba(99, 153, 34, 0.15)"] {
+  background-color: rgba(126,200,50,0.1) !important;
+  border-color: rgba(126,200,50,0.3) !important;
+}
+
+/* ══════════════════════════════════════════════════
+   ALERTAS ACTIVAS — fondo más visible
+   ══════════════════════════════════════════════════ */
+
+div[style*="ALTO"][style*="padding: \"8px 10px\""],
+div[style*="CRÍTICO"][style*="padding: \"8px 10px\""] {
   font-weight: 600 !important;
-  letter-spacing: 0.06em !important;
-  color: #8A9BB0 !important;
-}
-
-/* ══════════════════════════════════════════════════
-   ALERTAS — más legibles
-   ══════════════════════════════════════════════════ */
-
-/* Badges de nivel */
-div[style*="border-radius: \"8px\""][style*="CRITICO"],
-div[style*="borderRadius: \"8px\""][style*="CRITICO"] {
-  border-width: 1px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.01em !important;
 }
 
 /* ══════════════════════════════════════════════════
@@ -165,67 +206,60 @@ div[style*="borderRadius: \"8px\""][style*="CRITICO"] {
    ══════════════════════════════════════════════════ */
 
 .Select-control {
-  background-color: rgba(8, 16, 30, 0.95) !important;
-  border: 1px solid rgba(55,138,221,0.2) !important;
+  background-color: rgba(10, 20, 36, 0.98) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
   border-radius: 8px !important;
-  color: #CED0D6 !important;
+  color: #E2E4EA !important;
   font-size: 13px !important;
   height: 36px !important;
 }
 
 .Select-control:hover {
   border-color: rgba(55,138,221,0.4) !important;
-  box-shadow: 0 0 0 3px rgba(55,138,221,0.08) !important;
 }
 
 .Select-control.is-focused {
   border-color: rgba(55,138,221,0.6) !important;
-  box-shadow: 0 0 0 3px rgba(55,138,221,0.12) !important;
+  box-shadow: 0 0 0 3px rgba(55,138,221,0.1) !important;
 }
 
 .Select-menu-outer {
-  background-color: rgba(8, 16, 30, 0.99) !important;
-  border: 1px solid rgba(55,138,221,0.18) !important;
+  background-color: rgba(10, 20, 36, 0.99) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
   border-radius: 10px !important;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5) !important;
-  backdrop-filter: blur(20px) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6) !important;
+  backdrop-filter: blur(24px) !important;
   margin-top: 6px !important;
   overflow: hidden !important;
 }
 
 .Select-value-label,
 .Select-placeholder {
-  color: #CED0D6 !important;
+  color: #E2E4EA !important;
   font-size: 13px !important;
   line-height: 36px !important;
 }
 
 .Select-option {
   background-color: transparent !important;
-  color: #A8AAB0 !important;
+  color: #B8BAC0 !important;
   font-size: 13px !important;
   padding: 9px 14px !important;
-  transition: background 0.1s ease !important;
-  border-radius: 0 !important;
 }
-
-.Select-option:first-child { border-radius: 10px 10px 0 0 !important; }
-.Select-option:last-child  { border-radius: 0 0 10px 10px !important; }
 
 .Select-option:hover,
 .Select-option.is-focused {
-  background-color: rgba(55,138,221,0.1) !important;
-  color: #EAE8E2 !important;
+  background-color: rgba(55,138,221,0.12) !important;
+  color: #F4F2EC !important;
 }
 
 .Select-option.is-selected {
-  background-color: rgba(55,138,221,0.18) !important;
-  color: #EAE8E2 !important;
-  font-weight: 500 !important;
+  background-color: rgba(55,138,221,0.2) !important;
+  color: #F4F2EC !important;
+  font-weight: 600 !important;
 }
 
-.Select-arrow-zone { padding-right: 10px !important; }
-.Select-arrow { border-top-color: #6A7D94 !important; }
+.Select-arrow { border-top-color: #7A8EA8 !important; }
 
 /* ══════════════════════════════════════════════════
    BOTÓN ACTUALIZAR
@@ -233,13 +267,12 @@ div[style*="borderRadius: \"8px\""][style*="CRITICO"] {
 
 button#btn-analizar,
 button[id="btn-analizar"] {
-  background: rgba(55,138,221,0.15) !important;
-  border: 1px solid rgba(55,138,221,0.35) !important;
-  color: #7FBCE8 !important;
+  background: rgba(55,138,221,0.18) !important;
+  border: 1px solid rgba(55,138,221,0.4) !important;
+  color: #90C8F0 !important;
   border-radius: 8px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.02em !important;
   padding: 8px 20px !important;
   transition: all 0.15s ease !important;
   cursor: pointer !important;
@@ -247,15 +280,15 @@ button[id="btn-analizar"] {
 
 button#btn-analizar:hover,
 button[id="btn-analizar"]:hover {
-  background: rgba(55,138,221,0.25) !important;
-  border-color: rgba(55,138,221,0.55) !important;
-  color: #B8D8F5 !important;
+  background: rgba(55,138,221,0.28) !important;
+  border-color: rgba(55,138,221,0.6) !important;
+  color: #C4E0FA !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 16px rgba(55,138,221,0.2) !important;
+  box-shadow: 0 4px 16px rgba(55,138,221,0.25) !important;
 }
 
 /* ══════════════════════════════════════════════════
-   PLOTLY — fondo transparente + legibilidad
+   PLOTLY
    ══════════════════════════════════════════════════ */
 
 .js-plotly-plot .plotly .bg,
@@ -265,75 +298,37 @@ button[id="btn-analizar"]:hover {
 }
 
 .js-plotly-plot text {
-  fill: #7A8E9E !important;
+  fill: #8A9CB4 !important;
   font-family: "Inter", system-ui, sans-serif !important;
   font-size: 11px !important;
 }
 
 .js-plotly-plot .gridlayer path {
-  stroke: rgba(55,138,221,0.07) !important;
+  stroke: rgba(255,255,255,0.05) !important;
 }
 
 .js-plotly-plot .zerolinelayer path {
-  stroke: rgba(55,138,221,0.12) !important;
+  stroke: rgba(255,255,255,0.08) !important;
 }
 
-/* Tooltips */
 .hoverlayer .hovertext rect {
-  fill: rgba(6, 14, 26, 0.97) !important;
-  stroke: rgba(55,138,221,0.25) !important;
-  rx: 6 !important;
+  fill: rgba(8, 16, 32, 0.98) !important;
+  stroke: rgba(255,255,255,0.12) !important;
 }
+
 .hoverlayer .hovertext text {
-  fill: #D4D8E0 !important;
+  fill: #E2E4EA !important;
   font-size: 12px !important;
 }
 
 /* ══════════════════════════════════════════════════
-   INDICADORES KPI COMPACTOS
+   BARRA DE SCORE
    ══════════════════════════════════════════════════ */
 
-/* KPIs pequeños (Críticos, Altos, Medios) — compactar */
-div[id*="kpi"],
-div[style*="fontSize: \"36px\""],
-div[style*="fontSize: \"32px\""],
-div[style*="fontSize: \"28px\""] {
-  font-size: 28px !important;
-  line-height: 1.1 !important;
-}
-
-/* ══════════════════════════════════════════════════
-   BADGES DE RIESGO — glow sutil por nivel
-   ══════════════════════════════════════════════════ */
-
-div[style*="#E24B4A"],
-span[style*="#E24B4A"] {
-  text-shadow: 0 0 16px rgba(226,75,74,0.5) !important;
-}
-
-div[style*="#D85A30"],
-span[style*="#D85A30"] {
-  text-shadow: 0 0 16px rgba(216,90,48,0.45) !important;
-}
-
-div[style*="#BA7517"],
-span[style*="#BA7517"] {
-  text-shadow: 0 0 12px rgba(186,117,23,0.4) !important;
-}
-
-div[style*="#639922"],
-span[style*="#639922"] {
-  text-shadow: 0 0 12px rgba(99,153,34,0.4) !important;
-}
-
-/* ══════════════════════════════════════════════════
-   BARRA DE PROGRESO / SCORE
-   ══════════════════════════════════════════════════ */
-
-/* La barra de fondo del score */
+div[style*="height: \"6px\""],
 div[style*="height: \"5px\""],
 div[style*="height: \"4px\""] {
-  background-color: rgba(255,255,255,0.07) !important;
+  background-color: rgba(255,255,255,0.08) !important;
   border-radius: 4px !important;
 }
 
@@ -343,7 +338,7 @@ div[style*="height: \"4px\""] {
 
 hr {
   border: none !important;
-  border-top: 1px solid rgba(55,138,221,0.1) !important;
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
   margin: 10px 0 !important;
 }
 
@@ -353,45 +348,21 @@ hr {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
-::-webkit-scrollbar-thumb {
-  background: rgba(55,138,221,0.2);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(55,138,221,0.4);
-}
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
 
 /* ══════════════════════════════════════════════════
-   LOADING STATE
+   LOADING
    ══════════════════════════════════════════════════ */
 
-._dash-loading { background-color: #0B1520 !important; }
-._dash-loading-callback { opacity: 0.5; transition: opacity 0.2s ease; }
-
-/* ══════════════════════════════════════════════════
-   TABLA / FILAS ALTERNAS
-   ══════════════════════════════════════════════════ */
-
-table tr:nth-child(even) {
-  background-color: rgba(55,138,221,0.03) !important;
-}
-
-/* ══════════════════════════════════════════════════
-   PARETO / BARRAS HORIZONTALES
-   ══════════════════════════════════════════════════ */
-
-.js-plotly-plot .bars path {
-  opacity: 0.9 !important;
-}
+._dash-loading { background-color: #08111E !important; }
+._dash-loading-callback { opacity: 0.4; transition: opacity 0.2s ease; }
 
 /* ══════════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════════ */
 
-@media (max-width: 1280px) {
-  body { font-size: 12px; }
-}
-
+@media (max-width: 1280px) { body { font-size: 12px; } }
 @media (max-width: 768px) {
   body { font-size: 12px; }
   body::before, body::after { display: none; }
