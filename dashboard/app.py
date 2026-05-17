@@ -927,21 +927,60 @@ app.layout = html.Div(
     Output("store-datasource",  "data"),
     Input("btn-analizar",  "n_clicks"),
     Input("auto-refresh",  "n_intervals"),
-    State("empresa-selector", "value"),
-    State("store-history",    "data"),
+    State("empresa-selector",  "value"),
+    State("zona-selector",     "value"),
+    State("cultivo-selector",  "value"),
+    State("campaña-selector",  "value"),
+    State("store-history",     "data"),
     prevent_initial_call=False,
 )
-def correr_analisis(n_clicks, n_intervals, empresa_id, history_data):
+def correr_analisis(n_clicks, n_intervals, empresa_id, zona, cultivo, campaña, history_data):
+
+    # ── Etiquetas legibles de zona/cultivo/campaña ────────────
+    zona_labels = {
+        "pampa_humeda":    "Pampa Húmeda",
+        "cordoba_sur":     "Córdoba Sur",
+        "santa_fe_centro": "Santa Fe Centro",
+        "entre_rios":      "Entre Ríos",
+        "buenos_aires_n":  "Buenos Aires Norte",
+        "la_pampa":        "La Pampa",
+        "chaco":           "Chaco / NOA",
+    }
+    cultivo_labels = {
+        "soja": "Soja", "maiz": "Maíz",
+        "trigo": "Trigo", "girasol": "Girasol",
+    }
+    campaña_labels = {"2024_25": "2024/25", "2025_26": "2025/26"}
+
+    zona_label    = zona_labels.get(zona or "pampa_humeda", "Pampa Húmeda")
+    cultivo_label = cultivo_labels.get(cultivo or "soja", "Soja")
+    campaña_label = campaña_labels.get(campaña or "2024_25", "2024/25")
+    contexto_label = f"{zona_label} · {cultivo_label} · Campaña {campaña_label}"
+
+    # Coordenadas de la zona seleccionada
+    coords_zona = {
+        "pampa_humeda":    (-33.0, -61.0),
+        "cordoba_sur":     (-33.5, -63.5),
+        "santa_fe_centro": (-31.5, -61.5),
+        "entre_rios":      (-32.0, -58.5),
+        "buenos_aires_n":  (-35.0, -60.0),
+        "la_pampa":        (-36.5, -64.5),
+        "chaco":           (-27.0, -61.0),
+    }
+    lat, lon = coords_zona.get(zona or "pampa_humeda", (-33.0, -61.0))
+
     emp = EMPRESAS[empresa_id]
+    # Sobreescribir lat/lon/lugar con los de la zona seleccionada
+    emp_efectivo = {**emp, "lat": lat, "lon": lon, "lugar": zona_label}
 
     # ── Datos: intenta APIs públicas, completa con defaults internos
     fuentes: dict = {}
     if CONECTORES_DISPONIBLE and _conector:
         try:
             snap = _conector.snapshot_completo(
-                lat=emp.get("lat", -34.6037),
-                lon=emp.get("lon", -58.3816),
-                lugar=emp.get("lugar", "Argentina"),
+                lat=emp_efectivo.get("lat", -34.6037),
+                lon=emp_efectivo.get("lon", -58.3816),
+                lugar=emp_efectivo.get("lugar", "Argentina"),
             )
             lecturas_reales = _conector.snapshot_a_lecturas(snap)
             lecturas, fuentes = _merge_lecturas(lecturas_reales, emp["lecturas_default"])
@@ -961,7 +1000,11 @@ def correr_analisis(n_clicks, n_intervals, empresa_id, history_data):
     engine = ArgoEngine(emp["config"])
     sitrep = engine.analizar(lecturas, capacidad_mitigacion=0.55)
     sitrep_dict = sitrep.to_dict()
-    sitrep_dict["fuentes"] = fuentes   # guardamos origen de cada indicador
+    sitrep_dict["fuentes"] = fuentes
+    # Inyectar contexto de zona/cultivo/campaña para reemplazar nombre de empresa
+    sitrep_dict["contexto_label"] = contexto_label
+    sitrep_dict["zona_label"]     = zona_label
+    sitrep_dict["cultivo_label"]  = cultivo_label
 
     # ── Monte Carlo (3 000 sim para velocidad en dashboard)
     mc_dict: dict = {}
@@ -1456,8 +1499,35 @@ def actualizar_matriz(data):
 def actualizar_sitrep(data):
     if not data:
         return []
-    lineas = data["resumen_ejecutivo"].split("\n")
+
+    contexto = data.get("contexto_label", "")
+    zona     = data.get("zona_label", "")
+
+    # Reemplazar nombre de empresa en el resumen ejecutivo
+    resumen = data["resumen_ejecutivo"]
+    for empresa_ficticia in [
+        "Cooperativa Agropecuaria Pampa Sur",
+        "ACA Agropecuaria Coop. Ltda.",
+        "Transportadora del Sur S.A.",
+        "YPF Vaca Muerta",
+        "Pan American Energy S.A.",
+        "Andreani Logística S.A.",
+        "Cooperativa",
+    ]:
+        if empresa_ficticia in resumen:
+            resumen = resumen.replace(empresa_ficticia, contexto or zona or "Zona seleccionada")
+
+    lineas = resumen.split("\n")
     items = [_lbl("SITREP Ejecutivo")]
+
+    # Subtítulo de contexto
+    if contexto:
+        items.append(html.Div(contexto, style={
+            "fontSize": "11px", "color": COLORES["azul"],
+            "fontWeight": "500", "marginBottom": "10px",
+            "letterSpacing": "0.04em",
+        }))
+
     for linea in lineas:
         if not linea.strip():
             items.append(html.Div(style={"height": "6px"}))
@@ -1794,11 +1864,13 @@ def actualizar_score(data):
     nivel  = data["nivel_global"]
     color  = COLORES[nivel]
     fondo  = COLORES[f"fondo_{nivel.lower()}"]
-    empresa = data["empresa"].split(" ")[0]  # primera palabra
+    # Usar zona_label en lugar del nombre de empresa
+    label_display = data.get("zona_label") or data.get("contexto_label") or \
+                    data.get("empresa", "").split(" ")[0]
 
-    barra_pct = score  # 0-100
+    barra_pct = score
     return [
-        html.Div(empresa, style={
+        html.Div(label_display, style={
             "fontSize": "11px", "color": COLORES["texto2"],
             "fontWeight": "500", "textTransform": "uppercase",
             "letterSpacing": "0.05em", "marginBottom": "8px",
@@ -1838,7 +1910,8 @@ def actualizar_situacion(data):
     score   = int(data["score_global"] * 100)
     nivel   = data["nivel_global"]
     riesgos = data["riesgos"]
-    empresa = data["empresa"]
+    # Usar zona_label en lugar del nombre de empresa
+    empresa = data.get("zona_label") or data.get("contexto_label") or data.get("empresa", "La zona seleccionada")
 
     criticos = [r for r in riesgos if r["nivel"] == "CRITICO"]
     altos    = [r for r in riesgos if r["nivel"] == "ALTO"]
