@@ -367,3 +367,19 @@ hr {
   body { font-size: 12px; }
   body::before, body::after { display: none; }
 }
+
+
+/* ══════════════════════════════════════════════════
+   PANTALLA DE CARGA (el servicio gratuito puede estar en reposo)
+   ══════════════════════════════════════════════════ */
+._dash-loading {
+  font-size: 0 !important;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; text-align: center; padding: 24px;
+  background: #08111E;
+}
+._dash-loading::after {
+  content: "ARGO está iniciando… Si nadie lo usó hace un rato puede tardar hasta un minuto. No cierres la página.";
+  font-size: 16px; line-height: 1.5; color: #C9D6E6; max-width: 420px;
+  font-family: system-ui, sans-serif;
+}

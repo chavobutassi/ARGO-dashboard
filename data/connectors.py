@@ -273,14 +273,22 @@ class ConectorDatos:
         Útil para alimentar el motor ARGO en una sola llamada.
         """
         log.info(f"Iniciando snapshot completo — {lugar}")
-        return {
-            "timestamp":   datetime.now().isoformat(),
-            "lugar":       lugar,
-            "clima":       self.clima_actual(lat, lon, lugar),
-            "commodities": self.precios_commodities(),
-            "tipo_cambio": self.tipo_cambio_bcra(),
-            "combustibles":self.precio_combustibles(),
-        }
+        # Las cuatro fuentes se consultan a la vez: la espera total es la de la
+        # más lenta, no la suma de todas.
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            f_clima = pool.submit(self.clima_actual, lat, lon, lugar)
+            f_comm = pool.submit(self.precios_commodities)
+            f_tc = pool.submit(self.tipo_cambio_bcra)
+            f_comb = pool.submit(self.precio_combustibles)
+            return {
+                "timestamp":   datetime.now().isoformat(),
+                "lugar":       lugar,
+                "clima":       f_clima.result(),
+                "commodities": f_comm.result(),
+                "tipo_cambio": f_tc.result(),
+                "combustibles":f_comb.result(),
+            }
 
     def snapshot_a_lecturas(self, snapshot: dict) -> list:
         """

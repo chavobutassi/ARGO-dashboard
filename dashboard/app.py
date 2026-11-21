@@ -588,6 +588,21 @@ def _fig_spark(scores: list, color: str) -> go.Figure:
     return fig
 
 
+# ── Campañas agrícolas (dinámicas: cambian solas cada año) ──
+def _campanias(n: int = 3):
+    """La campaña gruesa/fina empieza hacia mitad de año: de julio en adelante
+    la vigente es año/año+1; antes de julio, año-1/año."""
+    hoy = datetime.now()
+    inicio = hoy.year if hoy.month >= 7 else hoy.year - 1
+    return [(f"{a}_{str(a + 1)[2:]}", f"{a}/{str(a + 1)[2:]}")
+            for a in range(inicio, inicio - n, -1)]
+
+
+CAMPANIAS = _campanias()
+CAMPANIA_ACTUAL = CAMPANIAS[0][0]
+CAMPANIA_LABELS = {valor: etiqueta for valor, etiqueta in CAMPANIAS}
+
+
 # ── App ─────────────────────────────────────────────────────
 app = dash.Dash(
     __name__,
@@ -690,11 +705,9 @@ app.layout = html.Div(
                         # Campaña
                         dcc.Dropdown(
                             id="campaña-selector",
-                            options=[
-                                {"label": "Campaña 2024/25", "value": "2024_25"},
-                                {"label": "Campaña 2025/26", "value": "2025_26"},
-                            ],
-                            value="2024_25",
+                            options=[{"label": f"Campaña {etiqueta}", "value": valor}
+                                     for valor, etiqueta in CAMPANIAS],
+                            value=CAMPANIA_ACTUAL,
                             clearable=False,
                             style={"width": "160px", "fontSize": "13px"},
                             placeholder="Campaña...",
@@ -1043,11 +1056,11 @@ def correr_analisis(n_clicks, n_intervals, empresa_id, zona, cultivo, campaña, 
         "soja": "Soja", "maiz": "Maíz",
         "trigo": "Trigo", "girasol": "Girasol",
     }
-    campaña_labels = {"2024_25": "2024/25", "2025_26": "2025/26"}
+    campaña_labels = CAMPANIA_LABELS
 
     zona_label    = zona_labels.get(zona or "pampa_humeda", "Pampa Húmeda")
     cultivo_label = cultivo_labels.get(cultivo or "soja", "Soja")
-    campaña_label = campaña_labels.get(campaña or "2024_25", "2024/25")
+    campaña_label = campaña_labels.get(campaña or CAMPANIA_ACTUAL, CAMPANIAS[0][1])
     contexto_label = f"{zona_label} · {cultivo_label} · Campaña {campaña_label}"
 
     # Coordenadas de la zona seleccionada
@@ -2397,7 +2410,7 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
         "chaco": "Chaco / NOA",
     }
     cultivo_labels = {"soja": "Soja", "maiz": "Maíz", "trigo": "Trigo", "girasol": "Girasol"}
-    campaña_labels = {"2024_25": "2024/25", "2025_26": "2025/26"}
+    campaña_labels = CAMPANIA_LABELS
 
     subtitulo = (f"{cultivo_labels.get(cultivo, cultivo)} · "
                  f"{zona_labels.get(zona, zona)} · "
