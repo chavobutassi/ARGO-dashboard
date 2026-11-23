@@ -214,6 +214,46 @@ def _lbl(texto: str) -> html.Div:
     })
 
 
+# ── Valores manuales del panel agro (opcionales, persisten en el navegador) ──
+def _panel_valores_manuales() -> html.Details:
+    """
+    Campos editables que reemplazan a la fuente automática cuando se completan.
+    Vacío = se usa el dato en vivo. Se guardan en el navegador (localStorage).
+    """
+    def _campo(id_, etiqueta, unidad, paso):
+        return html.Div(style={"flex": "1", "minWidth": "130px"}, children=[
+            html.Div(f"{etiqueta} ({unidad})", style={
+                "fontSize": "10px", "color": COLORES["texto2"], "marginBottom": "4px",
+            }),
+            dcc.Input(
+                id=id_, type="number", min=0, step=paso, debounce=True,
+                placeholder="auto", persistence=True, persistence_type="local",
+                style={"width": "100%", "fontSize": "12px", "padding": "6px 8px",
+                       "borderRadius": "6px", "boxSizing": "border-box",
+                       "border": f"1px solid {COLORES['borde']}",
+                       "backgroundColor": COLORES["fondo"], "color": COLORES["texto"]},
+            ),
+        ])
+
+    return html.Details(style={"marginTop": "14px"}, children=[
+        html.Summary("Valores manuales (opcional)", style={
+            "fontSize": "11px", "color": COLORES["texto2"], "cursor": "pointer",
+        }),
+        html.Div("Si completás un campo, reemplaza al dato automático. "
+                 "Dejalo vacío para usar la fuente en vivo.", style={
+            "fontSize": "10px", "color": COLORES["texto2"], "margin": "8px 0",
+        }),
+        html.Div(style={"display": "flex", "gap": "10px", "flexWrap": "wrap"}, children=[
+            _campo("man-soja",   "Soja Rosario",  "USD/tn", 1),
+            _campo("man-maiz",   "Maíz Rosario",  "USD/tn", 1),
+            _campo("man-trigo",  "Trigo Rosario", "USD/tn", 1),
+            _campo("man-tc",     "Dólar oficial", "ARS/USD", 1),
+            _campo("man-gasoil", "Gasoil",        "ARS/L", 1),
+            _campo("man-lluvia", "Lluvia 7d",     "mm", 0.1),
+        ]),
+    ])
+
+
 # ── Empresas + config pre-cargado ───────────────────────────
 EMPRESAS: dict = {
     # ── Logística ───────────────────────────────────────
@@ -841,6 +881,7 @@ app.layout = html.Div(
                                 }),
                             ]),
                             html.Div(id="panel-agro-decision"),
+                            _panel_valores_manuales(),
                         ],
                     ),
 
@@ -2240,6 +2281,24 @@ def actualizar_global_señales(_i, _c):
     return [_lbl("Señales de mercado mundial"), *items]
 
 
+# ── Rótulos de fuente (año/campaña reales, nunca fijos) ─────
+def _rotulo_fuente_fao(ranking: list) -> str:
+    """Año real de FAOSTAT, o aviso si se muestra la tabla estática de referencia."""
+    fila = ranking[0] if ranking else {}
+    año = fila.get("año")
+    if fila.get("referencia") or not año:
+        return "Fuente: tabla de referencia estática (FAOSTAT no disponible)"
+    return f"Fuente: FAOSTAT · producción {año}"
+
+
+def _rotulo_fuente_usda(usda: dict) -> str:
+    """Campaña real del marketYear de USDA PSD, o aviso si son valores de referencia."""
+    campaña = usda.get("campaña")
+    if usda.get("referencia") or not campaña:
+        return "Fuente: valores de referencia (USDA PSD no disponible)"
+    return f"Fuente: USDA PSD · campaña {campaña}"
+
+
 # ── Global. Ranking productores ──────────────────────────────
 @app.callback(
     Output("panel-global-ranking", "children"),
@@ -2285,7 +2344,7 @@ def actualizar_global_ranking(_i):
     return [
         _lbl("Top 10 productores mundiales — Soja"),
         *filas,
-        html.Div("Fuente: FAO / campaña 2022-23", style={
+        html.Div(_rotulo_fuente_fao(ranking), style={
             "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
         }),
     ]
@@ -2343,7 +2402,7 @@ def actualizar_global_usda(_i):
         _stat("Ratio stocks/uso soja",   usda.get("ratio_stocks_uso_pct", "N/D"), "%"),
         _stat("Producción global maíz",  usda_maiz.get("produccion_global_mm_tn", "N/D")),
         _stat("Producción global trigo", usda_trigo.get("produccion_global_mm_tn", "N/D")),
-        html.Div("Fuente: USDA PSD / campaña actual", style={
+        html.Div(_rotulo_fuente_usda(usda), style={
             "fontSize": "10px", "color": COLORES["texto2"], "marginTop": "8px",
         }),
     ]
@@ -2358,8 +2417,15 @@ def actualizar_global_usda(_i):
     Input("campaña-selector",      "value"),
     Input("btn-analizar",          "n_clicks"),
     Input("store-sitrep",          "data"),
+    Input("man-soja",              "value"),
+    Input("man-maiz",              "value"),
+    Input("man-trigo",             "value"),
+    Input("man-tc",                "value"),
+    Input("man-gasoil",            "value"),
+    Input("man-lluvia",            "value"),
 )
-def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
+def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep,
+                                m_soja, m_maiz, m_trigo, m_tc, m_gasoil, m_lluvia):
     visible = {"marginBottom": "14px"}
 
     if not AGRO_DISPONIBLE:
@@ -2380,7 +2446,15 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
     zona     = zona    or "pampa_humeda"
 
     try:
-        snap     = _conector_agro.snapshot_agro(lat, lon, zona)
+        manuales = {
+            "soja_rosario_usd_tn":    m_soja,
+            "maiz_rosario_usd_tn":    m_maiz,
+            "trigo_rosario_usd_tn":   m_trigo,
+            "usd_oficial_ars":        m_tc,
+            "gasoil_ars_litro":       m_gasoil,
+            "lluvia_acumulada_7d_mm": m_lluvia,
+        }
+        snap     = _conector_agro.snapshot_agro(lat, lon, zona, manuales=manuales)
         decision = _conector_agro.score_decision_venta(snap, grano=cultivo, zona=zona)
     except Exception as e:
         log.warning(f"Panel agro macro error: {e}")
@@ -2398,9 +2472,11 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
     logistica     = snap.get("logistica", {})
 
     color_rec = {"VENDER": COLORES["BAJO"], "ESPERAR": COLORES["MEDIO"],
-                 "ATENCION": COLORES["CRITICO"]}.get(recomendacion, COLORES["MEDIO"])
+                 "ATENCION": COLORES["CRITICO"],
+                 "SIN DATOS": COLORES["texto2"]}.get(recomendacion, COLORES["MEDIO"])
     fondo_rec = {"VENDER": COLORES["fondo_bajo"], "ESPERAR": COLORES["fondo_medio"],
-                 "ATENCION": COLORES["fondo_critico"]}.get(recomendacion, COLORES["fondo_medio"])
+                 "ATENCION": COLORES["fondo_critico"],
+                 "SIN DATOS": COLORES["fondo"]}.get(recomendacion, COLORES["fondo_medio"])
 
     # Etiquetas legibles
     zona_labels = {
@@ -2457,14 +2533,33 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
     })
 
     # ── KPIs ─────────────────────────────────────────────────
-    soja_usd = precios.get(f"{cultivo}_rosario_usd_tn") or precios.get(f"{cultivo}_chicago_usd_tn", "N/D")
-    tc_val   = tc.get("usd_oficial_ars", "N/D")
-    lluvia   = clima.get("lluvia_acumulada_7d_mm", "N/D")
-    heladas  = clima.get("dias_helada_7d", 0)
-    ventana  = clima.get("ventana_cosecha_ok", False)
-    gasoil   = logistica.get("gasoil_ars_litro", "N/D")
+    # Precio: Rosario (manual o MATBA); si no hay, referencia Chicago rotulada como tal
+    precio_ros = precios.get(f"{cultivo}_rosario_usd_tn")
+    precio_chi = snap.get("precios_chicago", {}).get(f"{cultivo}_chicago_usd_tn")
+    if precio_ros:
+        precio_lbl = f"{cultivo_labels.get(cultivo,'Grano')} Rosario"
+        precio_val = precio_ros
+        precio_origen = precios.get("origen_por_grano", {}).get(cultivo, "en vivo")
+    elif precio_chi:
+        precio_lbl = f"{cultivo_labels.get(cultivo,'Grano')} Chicago (ref.)"
+        precio_val = precio_chi
+        precio_origen = "en vivo"
+    else:
+        precio_lbl = f"{cultivo_labels.get(cultivo,'Grano')} Rosario"
+        precio_val, precio_origen = None, "sin dato"
 
-    def _kpi(label, valor, color=None):
+    tc_val   = tc.get("usd_oficial_ars")
+    lluvia   = clima.get("lluvia_acumulada_7d_mm")
+    heladas  = clima.get("dias_helada_7d")
+    ventana  = clima.get("ventana_cosecha_ok")
+    gasoil   = logistica.get("gasoil_ars_litro")
+
+    def _fmt(v, plantilla):
+        """Formatea un valor o devuelve N/D si no hay dato."""
+        return "N/D" if v is None else plantilla.format(v)
+
+    def _kpi(label, valor, color=None, origen=None):
+        color_origen = COLORES["MEDIO"] if origen == "manual" else COLORES["texto2"]
         return html.Div(style={
             "backgroundColor": COLORES["fondo"], "borderRadius": "8px",
             "padding": "10px 12px", "flex": "1",
@@ -2478,20 +2573,29 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
                 "fontSize": "15px", "fontWeight": "600",
                 "color": color or COLORES["texto"],
             }),
+            html.Div(origen or "", style={
+                "fontSize": "9px", "color": color_origen, "marginTop": "3px",
+                "minHeight": "11px",
+            }),
         ])
 
     kpis = html.Div(style={"display": "flex", "gap": "8px",
                             "marginBottom": "16px", "flexWrap": "wrap"}, children=[
-        _kpi(f"{cultivo_labels.get(cultivo,'Grano')} Rosario", f"USD {soja_usd}/tn"),
-        _kpi("USD Oficial",      f"${tc_val}"),
-        _kpi("Lluvia 7d",        f"{lluvia} mm"),
-        _kpi("Gasoil",           f"${gasoil}/L"),
+        _kpi(precio_lbl,         _fmt(precio_val, "USD {:,.2f}/tn"), origen=precio_origen),
+        _kpi("USD Oficial",      _fmt(tc_val, "${:,.2f}"),
+             origen=tc.get("origen", "sin dato")),
+        _kpi("Lluvia 7d",        _fmt(lluvia, "{} mm"),
+             origen=clima.get("origen_lluvia", "sin dato")),
+        _kpi("Gasoil",           _fmt(gasoil, "${:,.0f}/L"),
+             origen=logistica.get("origen_gasoil", "sin dato")),
         _kpi("Ventana cosecha",
-             "Abierta" if ventana else "Cerrada",
-             COLORES["BAJO"] if ventana else COLORES["CRITICO"]),
+             "N/D" if ventana is None else ("Abierta" if ventana else "Cerrada"),
+             None if ventana is None else
+             (COLORES["BAJO"] if ventana else COLORES["CRITICO"])),
         _kpi("Heladas 7d",
-             f"{heladas} días",
-             COLORES["CRITICO"] if heladas > 0 else COLORES["BAJO"]),
+             _fmt(heladas, "{} días"),
+             None if heladas is None else
+             (COLORES["CRITICO"] if heladas > 0 else COLORES["BAJO"])),
     ])
 
     # ── Factores ─────────────────────────────────────────────
@@ -2505,6 +2609,8 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep):
             pct_pts = 50
         c = (COLORES["BAJO"] if pct_pts >= 70 else
              COLORES["MEDIO"] if pct_pts >= 40 else COLORES["CRITICO"])
+        if pts_str == "N/D":          # factor sin dato: neutro, no ámbar
+            c = COLORES["texto2"]
         return html.Div(style={
             "display": "flex", "alignItems": "center", "gap": "10px",
             "padding": "8px 0", "borderBottom": f"0.5px solid {COLORES['borde']}",

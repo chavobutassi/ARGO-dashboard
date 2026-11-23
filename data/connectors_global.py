@@ -28,6 +28,8 @@ import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from data.unidades import FACTOR_CENTAVOS_BU_A_USD_TN, es_plausible
+
 log = logging.getLogger("argo.global")
 
 TIMEOUT = 12
@@ -80,62 +82,88 @@ class ConectorGlobal:
 
     # ── TOP 10 PRODUCTORES — FAOSTAT ─────────────────────────
 
-    def ranking_productores(self, cultivo: str = "soja", año: int = 2022) -> list[dict]:
+    def ranking_productores(self, cultivo: str = "soja", año: Optional[int] = None) -> list[dict]:
         """
         Top 10 países productores de un cultivo según FAO.
         cultivo: "soja" | "maiz" | "trigo" | "arroz" | "girasol"
-        """
-        clave = f"fao_ranking_{cultivo}_{año}"
-        if cached := self._from_cache(clave):
-            return cached
 
+        Si `año` es None se busca el último año con datos publicados en FAOSTAT
+        (probando desde el año anterior hacia atrás) y cada fila lleva `año`
+        con el año realmente usado. Si la API no responde se devuelve una
+        tabla de referencia estática con `referencia=True` y `año=None`: el
+        panel debe rotularla como referencia, no como un año de FAO.
+        """
+        años_a_probar = [año] if año else [
+            datetime.now().year - delta for delta in range(1, 5)
+        ]
         codigo = FAO_CULTIVOS.get(cultivo, "236")
 
-        try:
-            url = (
-                "https://faostat.fao.org/api/v1/en/data/QCL"
-                f"?item={codigo}"
-                f"&year={año}"
-                "&element=5510"
-                "&area_group=countries"
-                "&output_type=objects"
-            )
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-            resp.raise_for_status()
-            raw = resp.json().get("data", [])
+        for año_probe in años_a_probar:
+            clave = f"fao_ranking_{cultivo}_{año_probe}"
+            if cached := self._from_cache(clave):
+                return cached
+            try:
+                top10 = self._consultar_fao(codigo, año_probe, cultivo)
+            except Exception as e:
+                # Error de red/API: no tiene sentido probar otros años
+                log.warning(f"FAO ranking no disponible ({e}) — usando fallback")
+                return self._fallback_ranking(cultivo)
+            if top10:
+                self._to_cache(clave, top10)
+                log.info(f"FAO ranking OK — {cultivo} {año_probe}: {len(top10)} países")
+                return top10
+            log.info(f"FAO sin datos de {cultivo} para {año_probe} — probando año anterior")
 
-            # Ordenar por producción descendente
-            datos = []
-            for item in raw:
-                try:
-                    pais   = item.get("Area", "")
-                    valor  = float(item.get("Value", 0))
-                    if valor > 0:
-                        datos.append({
-                            "pais":           pais,
-                            "produccion_tn":  valor,
-                            "produccion_mm":  round(valor / 1_000_000, 2),
-                        })
-                except (ValueError, TypeError):
-                    continue
+        log.warning("FAO sin datos en los años probados — usando fallback")
+        return self._fallback_ranking(cultivo)
 
-            datos.sort(key=lambda x: x["produccion_tn"], reverse=True)
-            top10 = datos[:10]
+    def _consultar_fao(self, codigo: str, año: int, cultivo: str) -> list[dict]:
+        """Consulta FAOSTAT para un año. Lista vacía si no hay datos; lanza si falla la API."""
+        url = (
+            "https://faostat.fao.org/api/v1/en/data/QCL"
+            f"?item={codigo}"
+            f"&year={año}"
+            "&element=5510"
+            "&area_group=countries"
+            "&output_type=objects"
+        )
+        resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
+        resp.raise_for_status()
+        raw = resp.json().get("data", [])
 
-            # Agregar posición y % del total
-            total = sum(d["produccion_tn"] for d in top10)
-            for i, d in enumerate(top10):
-                d["posicion"]   = i + 1
-                d["pct_global"] = round((d["produccion_tn"] / total) * 100, 1) if total else 0
-                d["es_argentina"] = "Argentina" in d["pais"]
+        datos = []
+        for item in raw:
+            try:
+                pais  = item.get("Area", "")
+                valor = float(item.get("Value", 0))
+                if valor > 0:
+                    datos.append({
+                        "pais":           pais,
+                        "produccion_tn":  valor,
+                        "produccion_mm":  round(valor / 1_000_000, 2),
+                    })
+            except (ValueError, TypeError):
+                continue
 
-            self._to_cache(clave, top10)
-            log.info(f"FAO ranking OK — {cultivo}: {len(top10)} países")
-            return top10
+        datos.sort(key=lambda x: x["produccion_tn"], reverse=True)
+        top10 = datos[:10]
 
-        except Exception as e:
-            log.warning(f"FAO ranking no disponible ({e}) — usando fallback")
-            return self._fallback_ranking(cultivo)
+        total = sum(d["produccion_tn"] for d in top10)
+        for i, d in enumerate(top10):
+            d["posicion"]   = i + 1
+            d["pct_global"] = round((d["produccion_tn"] / total) * 100, 1) if total else 0
+            d["es_argentina"] = "Argentina" in d["pais"]
+            d["año"]        = año
+            d["referencia"] = False
+        return top10
+
+    @staticmethod
+    def etiqueta_campaña(market_year: int) -> str:
+        """
+        Rótulo de campaña a partir del marketYear de USDA PSD.
+        El marketYear es el año en que inicia la campaña: 2025 → "2025/26".
+        """
+        return f"{market_year}/{(market_year + 1) % 100:02d}"
 
     # ── OFERTA Y DEMANDA MUNDIAL — USDA PSD ──────────────────
 
@@ -190,6 +218,7 @@ class ConectorGlobal:
             resultado = {
                 "cultivo":     cultivo,
                 "año":         año_actual,
+                "campaña":     self.etiqueta_campaña(año_actual),
                 "fuente":      "USDA PSD (Public Sector Data)",
                 "timestamp":   datetime.now().isoformat(),
                 **atributos,
@@ -272,9 +301,10 @@ class ConectorGlobal:
             return cached
 
         simbolos = {
-            "ZS=F": ("soja",  0.0367, "USD/tn"),
-            "ZC=F": ("maiz",  0.0394, "USD/tn"),
-            "ZW=F": ("trigo", 0.0367, "USD/tn"),
+            # CBOT cotiza en centavos/bushel → factor a USD/tn (ver data/unidades.py)
+            "ZS=F": ("soja",  FACTOR_CENTAVOS_BU_A_USD_TN["soja"],  "USD/tn"),
+            "ZC=F": ("maiz",  FACTOR_CENTAVOS_BU_A_USD_TN["maiz"],  "USD/tn"),
+            "ZW=F": ("trigo", FACTOR_CENTAVOS_BU_A_USD_TN["trigo"], "USD/tn"),
             "CL=F": ("wti",   1.0,    "USD/barril"),
             "BZ=F": ("brent", 1.0,    "USD/barril"),
         }
@@ -283,6 +313,9 @@ class ConectorGlobal:
 
         for simbolo, (nombre, factor, unidad) in simbolos.items():
             precio, prev = self._fetch_cbot_con_variacion(simbolo, factor)
+            if precio is not None and nombre in FACTOR_CENTAVOS_BU_A_USD_TN \
+                    and not es_plausible(nombre, precio):
+                precio = None  # error de unidad: cae al fallback de referencia
             if precio is not None:
                 cambio = round(precio - prev, 2) if prev else 0
                 cambio_pct = round((cambio / prev) * 100, 2) if prev else 0
@@ -573,12 +606,16 @@ class ConectorGlobal:
                 {"posicion":10, "pais": "Serbia",          "produccion_mm":   0.5, "pct_global":  1.3, "es_argentina": False},
             ],
         }
-        return rankings.get(cultivo, rankings["soja"])
+        tabla = rankings.get(cultivo, rankings["soja"])
+        # Tabla estática: no se le atribuye un año de FAO
+        return [dict(fila, **{"año": None, "referencia": True}) for fila in tabla]
 
     def _fallback_usda(self, cultivo: str) -> dict:
         return {
             "cultivo":               cultivo,
-            "año":                   2024,
+            "año":                   None,
+            "campaña":               None,   # valores de referencia: sin campaña real
+            "referencia":            True,
             "produccion_global_mm_tn": 390.0 if cultivo == "soja" else 1200.0,
             "stocks_finales_mm_tn":    100.0,
             "ratio_stocks_uso_pct":    25.0,
