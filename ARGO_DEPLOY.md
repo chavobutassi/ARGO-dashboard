@@ -48,3 +48,13 @@ services:
 # ── ARCHIVOS NECESARIOS PARA DEPLOY ─────────────────────────
 
 # requirements.txt (versiones fijas para reproducibilidad):
+
+## Variables de entorno opcionales
+
+| Variable | Para qué |
+|---|---|
+| `MATBA_USER`, `MATBA_PASSWORD` | Índices de futuros MATBA-ROFEX (precio Rosario) |
+| `USDA_API_KEY` | Oferta y demanda mundial USDA PSD (key gratuita de api.data.gov) |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | Guardar en el servidor los "Valores manuales" del panel agro. Crear antes la tabla con `db/argo_valores_manuales.sql`. La secret key es solo del servidor: nunca en el navegador. |
+
+Sin estas variables el dashboard funciona igual: muestra "N/D" o los valores manuales, que se recuerdan en el navegador.

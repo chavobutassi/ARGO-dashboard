@@ -214,6 +214,30 @@ def _lbl(texto: str) -> html.Div:
     })
 
 
+# ── Almacén de valores manuales (Supabase si está configurado) ──
+try:
+    from data.almacen_manual import AlmacenManual
+    _almacen = AlmacenManual()
+except Exception:                      # pragma: no cover
+    _almacen = None
+ALMACEN_ACTIVO = bool(_almacen and _almacen.disponible)
+
+# (id del campo en el layout, clave del valor manual)
+CAMPOS_MANUALES = [
+    ("man-soja",       "soja_rosario_usd_tn"),
+    ("man-maiz",       "maiz_rosario_usd_tn"),
+    ("man-trigo",      "trigo_rosario_usd_tn"),
+    ("man-tc",         "usd_oficial_ars"),
+    ("man-gasoil",     "gasoil_ars_litro"),
+    ("man-lluvia",     "lluvia_acumulada_7d_mm"),
+    ("man-flete",      "flete_ars_tn"),
+    ("man-ret-soja",   "ret_soja_pct"),
+    ("man-ret-maiz",   "ret_maiz_pct"),
+    ("man-ret-trigo",  "ret_trigo_pct"),
+    ("man-ret-girasol", "ret_girasol_pct"),
+]
+
+
 # ── Valores manuales del panel agro (opcionales, persisten en el navegador) ──
 def _panel_valores_manuales() -> html.Details:
     """
@@ -227,7 +251,11 @@ def _panel_valores_manuales() -> html.Details:
             }),
             dcc.Input(
                 id=id_, type="number", min=0, step=paso, debounce=True,
-                placeholder="auto", persistence=True, persistence_type="local",
+                placeholder="auto",
+                # Con almacén en servidor los valores vienen de Supabase;
+                # si no, se recuerdan en el navegador.
+                **({} if ALMACEN_ACTIVO else
+                   {"persistence": True, "persistence_type": "local"}),
                 style={"width": "100%", "fontSize": "12px", "padding": "6px 8px",
                        "borderRadius": "6px", "boxSizing": "border-box",
                        "border": f"1px solid {COLORES['borde']}",
@@ -240,9 +268,13 @@ def _panel_valores_manuales() -> html.Details:
             "fontSize": "11px", "color": COLORES["texto2"], "cursor": "pointer",
         }),
         html.Div("Si completás un campo, reemplaza al dato automático. "
-                 "Dejalo vacío para usar la fuente en vivo.", style={
-            "fontSize": "10px", "color": COLORES["texto2"], "margin": "8px 0",
-        }),
+                 "Dejalo vacío para usar la fuente en vivo."
+                 + (" Se guardan en el servidor y se comparten entre dispositivos."
+                    if ALMACEN_ACTIVO else " Se guardan solo en este navegador."),
+                 style={"fontSize": "10px", "color": COLORES["texto2"], "margin": "8px 0"}),
+        html.Div(id="man-estado", style={
+            "fontSize": "10px", "color": COLORES["texto2"], "minHeight": "12px",
+            "marginBottom": "6px"}),
         html.Div(style={"display": "flex", "gap": "10px", "flexWrap": "wrap"}, children=[
             _campo("man-soja",   "Soja Rosario",  "USD/tn", 1),
             _campo("man-maiz",   "Maíz Rosario",  "USD/tn", 1),
@@ -1055,6 +1087,8 @@ app.layout = html.Div(
             dcc.Store(id="store-history"),
             dcc.Store(id="store-datasource"),
             dcc.Interval(id="auto-refresh", interval=5*60*1000, n_intervals=0),
+            # Carga única de los valores manuales guardados en el servidor
+            dcc.Interval(id="carga-manuales", interval=500, max_intervals=1),
 
         ]),  # fin padding div
     ],
@@ -2675,6 +2709,32 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep,
         ))
 
     return [header, desc_div, kpis, factores_div, *alertas], visible
+
+
+# ── Valores manuales: cargar y guardar en el servidor ─────────
+@app.callback(
+    [Output(id_, "value") for id_, _ in CAMPOS_MANUALES],
+    Input("carga-manuales", "n_intervals"),
+)
+def cargar_valores_manuales(_n):
+    """Al abrir el dashboard, completa los campos con lo guardado en Supabase."""
+    if not ALMACEN_ACTIVO:
+        raise dash.exceptions.PreventUpdate
+    guardados = _almacen.leer()
+    return [guardados.get(clave) for _, clave in CAMPOS_MANUALES]
+
+
+@app.callback(
+    Output("man-estado", "children"),
+    [Input(id_, "value") for id_, _ in CAMPOS_MANUALES],
+    prevent_initial_call=True,
+)
+def guardar_valores_manuales(*valores):
+    """Persiste en Supabase cada cambio de los campos (vacío = borrar)."""
+    if not ALMACEN_ACTIVO:
+        raise dash.exceptions.PreventUpdate
+    ok = _almacen.guardar({clave: v for (_, clave), v in zip(CAMPOS_MANUALES, valores)})
+    return "Guardado en el servidor ✓" if ok else "No se pudo guardar en el servidor"
 
 
 # ── Entry point ──────────────────────────────────────────────
