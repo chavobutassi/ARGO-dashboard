@@ -25,6 +25,8 @@ import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from data.unidades import FACTOR_CENTAVOS_BU_A_USD_TN, es_plausible
+
 log = logging.getLogger("argo.data")
 
 TIMEOUT = 10
@@ -113,9 +115,10 @@ class ConectorDatos:
             return cached
 
         simbolos = {
-            "ZS=F": ("soja",           0.0367),
-            "ZC=F": ("maiz",           0.0394),
-            "ZW=F": ("trigo",          0.0367),
+            # CBOT cotiza en centavos/bushel → factor a USD/tn (ver data/unidades.py)
+            "ZS=F": ("soja",           FACTOR_CENTAVOS_BU_A_USD_TN["soja"]),
+            "ZC=F": ("maiz",           FACTOR_CENTAVOS_BU_A_USD_TN["maiz"]),
+            "ZW=F": ("trigo",          FACTOR_CENTAVOS_BU_A_USD_TN["trigo"]),
             "CL=F": ("petroleo_wti",   1.0),
             "BZ=F": ("petroleo_brent", 1.0),
         }
@@ -125,6 +128,9 @@ class ConectorDatos:
 
         for simbolo, (nombre, factor) in simbolos.items():
             precio = self._fetch_precio_commodity(simbolo, factor)
+            if precio is not None and nombre in FACTOR_CENTAVOS_BU_A_USD_TN \
+                    and not es_plausible(nombre, precio):
+                precio = None  # error de unidad: mejor sin dato que dato falso
             if precio is not None:
                 datos[nombre] = precio
                 log.info(f"Commodity OK — {nombre}: {precio}")

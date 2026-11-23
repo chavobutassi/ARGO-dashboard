@@ -30,7 +30,47 @@ import requests
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from data.unidades import FACTOR_CENTAVOS_BU_A_USD_TN, es_plausible
+
 log = logging.getLogger("argo.agro")
+
+# Origen de cada dato mostrado en el panel
+ORIGEN_VIVO = "en vivo"
+ORIGEN_MANUAL = "manual"
+ORIGEN_SIN_DATO = "sin dato"
+
+# Puntos mínimos (de 100) con dato real para emitir VENDER/ESPERAR/ATENCION
+COBERTURA_MINIMA_PTS = 50
+
+# Valores que el usuario puede cargar a mano (tienen prioridad sobre la API)
+CLAVES_MANUALES = (
+    "soja_rosario_usd_tn",
+    "maiz_rosario_usd_tn",
+    "trigo_rosario_usd_tn",
+    "usd_oficial_ars",
+    "gasoil_ars_litro",
+    "lluvia_acumulada_7d_mm",
+)
+
+
+def limpiar_manuales(manuales: Optional[dict]) -> dict:
+    """
+    Normaliza los valores manuales: descarta vacíos, no numéricos y valores
+    imposibles (precios/tipo de cambio/gasoil deben ser > 0; lluvia >= 0).
+    """
+    limpios: dict = {}
+    for clave in CLAVES_MANUALES:
+        crudo = (manuales or {}).get(clave)
+        if crudo in (None, ""):
+            continue
+        try:
+            valor = float(crudo)
+        except (TypeError, ValueError):
+            continue
+        minimo_ok = valor >= 0 if clave == "lluvia_acumulada_7d_mm" else valor > 0
+        if minimo_ok and valor == valor:  # descarta NaN
+            limpios[clave] = valor
+    return limpios
 
 TIMEOUT = 10
 HEADERS = {"User-Agent": "ARGO-AgroConnector/1.0"}
@@ -106,8 +146,9 @@ class ConectorAgro:
             return datos
 
         except Exception as e:
-            log.warning(f"MATBA-ROFEX no disponible ({e}) — usando Yahoo Finance como fallback")
-            return self._fallback_precios_granos()
+            # Sin valores inventados: el panel muestra "N/D" o el valor manual.
+            log.warning(f"MATBA-ROFEX no disponible ({e}) — sin precio Rosario en vivo")
+            return self._sin_precios_rosario()
 
     def precios_cbot_chicago(self) -> dict:
         """
@@ -118,15 +159,17 @@ class ConectorAgro:
         if cached := self._from_cache(clave):
             return cached
 
+        # Yahoo cotiza CBOT en centavos/bushel; el factor lo lleva a USD/tn
+        # (ver data/unidades.py).
         simbolos = {
-            "ZS=F": ("soja_chicago_usd_tn",  0.0367),
-            "ZC=F": ("maiz_chicago_usd_tn",   0.0394),
-            "ZW=F": ("trigo_chicago_usd_tn",  0.0367),
+            "ZS=F": ("soja",  "soja_chicago_usd_tn"),
+            "ZC=F": ("maiz",  "maiz_chicago_usd_tn"),
+            "ZW=F": ("trigo", "trigo_chicago_usd_tn"),
         }
 
         datos: dict = {"timestamp": datetime.now().isoformat()}
 
-        for simbolo, (nombre, factor) in simbolos.items():
+        for simbolo, (grano, nombre) in simbolos.items():
             try:
                 url = (
                     f"https://query1.finance.yahoo.com/v8/finance/chart/{simbolo}"
@@ -137,7 +180,9 @@ class ConectorAgro:
                 precio_raw = (
                     resp.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
                 )
-                datos[nombre] = round(precio_raw * factor, 2)
+                precio = round(precio_raw * FACTOR_CENTAVOS_BU_A_USD_TN[grano], 2)
+                if es_plausible(grano, precio):
+                    datos[nombre] = precio
             except Exception as e:
                 log.warning(f"CBOT {nombre} no disponible ({e})")
 
@@ -145,14 +190,21 @@ class ConectorAgro:
         self._to_cache(clave, datos)
         return datos
 
-    def brecha_chicago_rosario(self) -> dict:
+    def brecha_chicago_rosario(
+        self,
+        cbot: Optional[dict] = None,
+        matba: Optional[dict] = None,
+    ) -> dict:
         """
         Calcula la diferencia de precio entre Chicago y Rosario.
         Una brecha positiva indica que Rosario está barato vs referencia global.
         Útil para decidir si retener o vender.
+
+        Acepta `cbot` y `matba` ya resueltos (p. ej. con precios Rosario
+        cargados a mano); si no se pasan, los consulta.
         """
-        cbot = self.precios_cbot_chicago()
-        matba = self.precios_futuros_matba()
+        cbot = cbot if cbot is not None else self.precios_cbot_chicago()
+        matba = matba if matba is not None else self.precios_futuros_matba()
 
         resultado = {"timestamp": datetime.now().isoformat()}
 
@@ -168,24 +220,36 @@ class ConectorAgro:
 
     # ── TIPO DE CAMBIO Y RETENCIONES ─────────────────────────
 
-    def tipo_cambio_y_retenciones(self) -> dict:
+    def tipo_cambio_y_retenciones(
+        self,
+        tc_manual: Optional[float] = None,
+        cbot: Optional[dict] = None,
+    ) -> dict:
         """
-        Tipo de cambio oficial BCRA + retenciones vigentes por cultivo.
+        Tipo de cambio oficial + retenciones vigentes por cultivo.
         Permite calcular el precio neto en pesos que recibe el productor.
+
+        Origen del tipo de cambio (`origen`):
+          - "manual":   `tc_manual` informado por el usuario (tiene prioridad)
+          - "en vivo":  dolarapi.com
+          - "sin dato": la API falló y no hay valor manual → `usd_oficial_ars` = None
         """
         clave = "tc_retenciones"
-        if cached := self._from_cache(clave):
-            return cached
-
-        try:
-            url = "https://dolarapi.com/v1/dolares/oficial"
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-            resp.raise_for_status()
-            data = resp.json()
-            tc_oficial = round((float(data["compra"]) + float(data["venta"])) / 2, 2)
-        except Exception as e:
-            log.warning(f"BCRA no disponible ({e})")
-            tc_oficial = 1050.0
+        if tc_manual is None:
+            if cached := self._from_cache(clave):
+                return cached
+            try:
+                url = "https://dolarapi.com/v1/dolares/oficial"
+                resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
+                resp.raise_for_status()
+                data = resp.json()
+                tc_oficial = round((float(data["compra"]) + float(data["venta"])) / 2, 2)
+                origen = ORIGEN_VIVO
+            except Exception as e:
+                log.warning(f"Tipo de cambio no disponible ({e}) — sin dato")
+                tc_oficial, origen = None, ORIGEN_SIN_DATO
+        else:
+            tc_oficial, origen = round(float(tc_manual), 2), ORIGEN_MANUAL
 
         # Retenciones vigentes (actualizar si cambia política)
         retenciones = {
@@ -197,24 +261,27 @@ class ConectorAgro:
 
         datos = {
             "usd_oficial_ars":  tc_oficial,
+            "origen":           origen,
             "retenciones":      retenciones,
             "timestamp":        datetime.now().isoformat(),
-            "fuente":           "BCRA API + retenciones vigentes",
+            "fuente":           "dolarapi.com (oficial) + retenciones vigentes",
             "nota":             "Verificar retenciones ante cambios de política",
         }
 
         # Precio neto estimado en ARS por tonelada para cada cultivo
-        # usando precios CBOT como referencia
-        cbot = self.precios_cbot_chicago()
-        for grano, retencion in retenciones.items():
-            precio_usd = cbot.get(f"{grano}_chicago_usd_tn")
-            if precio_usd:
-                precio_neto_usd = precio_usd * (1 - retencion)
-                datos[f"{grano}_precio_neto_ars_tn"] = round(
-                    precio_neto_usd * tc_oficial, 0
-                )
+        # usando precios CBOT como referencia (solo si hay tipo de cambio)
+        if tc_oficial:
+            cbot = cbot if cbot is not None else self.precios_cbot_chicago()
+            for grano, retencion in retenciones.items():
+                precio_usd = cbot.get(f"{grano}_chicago_usd_tn")
+                if precio_usd:
+                    precio_neto_usd = precio_usd * (1 - retencion)
+                    datos[f"{grano}_precio_neto_ars_tn"] = round(
+                        precio_neto_usd * tc_oficial, 0
+                    )
 
-        self._to_cache(clave, datos)
+        if tc_manual is None and origen == ORIGEN_VIVO:
+            self._to_cache(clave, datos)
         return datos
 
     # ── CLIMA AGROCLIMÁTICO ───────────────────────────────────
@@ -291,6 +358,7 @@ class ConectorAgro:
                 "alerta_sequia":          lluvia_7d < 5 and curr["relative_humidity_2m"] < 40,
                 "timestamp":              curr["time"],
                 "fuente":                 "Open-Meteo (tiempo real + pronóstico 7d)",
+                "origen_lluvia":          ORIGEN_VIVO,
             }
 
             self._to_cache(clave, datos)
@@ -298,8 +366,8 @@ class ConectorAgro:
             return datos
 
         except Exception as e:
-            log.warning(f"Clima agro no disponible ({e})")
-            return self._fallback_clima_agro(zona)
+            log.warning(f"Clima agro no disponible ({e}) — sin dato")
+            return self._sin_clima_agro(zona)
 
     # ── LOGÍSTICA Y FLETES ────────────────────────────────────
 
@@ -323,9 +391,11 @@ class ConectorAgro:
             resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
             resp.raise_for_status()
             records = resp.json()["result"]["records"]
-            gasoil_ars = float(records[0].get("gasoil_grado_2", 1350.0))
-        except Exception:
-            gasoil_ars = 1350.0
+            gasoil_ars = float(records[0]["gasoil_grado_2"])
+            origen_gasoil = ORIGEN_VIVO
+        except Exception as e:
+            log.warning(f"Gasoil (SEPA) no disponible ({e}) — sin dato")
+            gasoil_ars, origen_gasoil = None, ORIGEN_SIN_DATO
 
         # Fletes de referencia por zona (ARS/tn) — actualizar mensualmente
         # Valores aproximados para distancias típicas a puerto Rosario
@@ -341,6 +411,7 @@ class ConectorAgro:
 
         datos = {
             "gasoil_ars_litro":    gasoil_ars,
+            "origen_gasoil":       origen_gasoil,
             "fletes":              fletes_referencia,
             "plantas_referencia":  PLANTAS_REFERENCIA,
             "timestamp":           datetime.now().isoformat(),
@@ -348,7 +419,8 @@ class ConectorAgro:
             "nota":                "Fletes aproximados a puerto Rosario. Verificar con transportista.",
         }
 
-        self._to_cache(clave, datos)
+        if origen_gasoil == ORIGEN_VIVO:   # no cachear el "sin dato"
+            self._to_cache(clave, datos)
         return datos
 
     # ── CONDICIÓN DE CULTIVOS ─────────────────────────────────
@@ -420,147 +492,179 @@ class ConectorAgro:
         logistica = snapshot.get("logistica", {})
         brecha = snapshot.get("brecha_chicago_rosario", {})
 
+        def _sin_dato(nombre: str, motivo: str):
+            """Factor sin dato: no suma puntos ni cuenta en el máximo."""
+            factores.append({
+                "factor": nombre, "valor": "N/D",
+                "puntos": "N/D", "estado": motivo,
+            })
+
         # ── Factor 1: Precio relativo (0-25 pts) ──────────────
-        max_score += 25
         precio_actual = precios.get(f"{grano}_rosario_usd_tn") or \
-                        precios.get(f"{grano}_chicago_usd_tn", 0)
+                        snapshot.get("precios_chicago", {}).get(f"{grano}_chicago_usd_tn")
 
         # Umbrales de referencia por grano (USD/tn)
         umbrales = {"soja": 300, "maiz": 170, "trigo": 200, "girasol": 350}
         umbral = umbrales.get(grano, 300)
 
-        if precio_actual > umbral * 1.10:
-            pts = 25
-            estado = "Precio alto — favorable para venta"
-        elif precio_actual > umbral:
-            pts = 15
-            estado = "Precio sobre umbral de referencia"
-        elif precio_actual > umbral * 0.90:
-            pts = 8
-            estado = "Precio bajo umbral — evaluar esperar"
+        if precio_actual is None:
+            _sin_dato("Precio de mercado", "Sin precio disponible — cargar valor manual")
         else:
-            pts = 0
-            estado = "Precio bajo — desfavorable para venta"
+            max_score += 25
+            if precio_actual > umbral * 1.10:
+                pts = 25
+                estado = "Precio alto — favorable para venta"
+            elif precio_actual > umbral:
+                pts = 15
+                estado = "Precio sobre umbral de referencia"
+            elif precio_actual > umbral * 0.90:
+                pts = 8
+                estado = "Precio bajo umbral — evaluar esperar"
+            else:
+                pts = 0
+                estado = "Precio bajo — desfavorable para venta"
 
-        score += pts
-        factores.append({
-            "factor": "Precio de mercado",
-            "valor": f"USD {precio_actual}/tn",
-            "puntos": f"{pts}/25",
-            "estado": estado,
-        })
+            score += pts
+            factores.append({
+                "factor": "Precio de mercado",
+                "valor": f"USD {precio_actual}/tn",
+                "puntos": f"{pts}/25",
+                "estado": estado,
+            })
 
         # ── Factor 2: Tipo de cambio (0-20 pts) ───────────────
-        max_score += 20
-        tc_actual = tc.get("usd_oficial_ars", 0)
+        tc_actual = tc.get("usd_oficial_ars")
         precio_neto_ars = tc.get(f"{grano}_precio_neto_ars_tn", 0)
 
-        if tc_actual > 1000:
-            pts = 20
-            estado = "TC elevado — conversión favorable"
-        elif tc_actual > 800:
-            pts = 12
-            estado = "TC moderado"
+        if tc_actual is None:
+            _sin_dato("Tipo de cambio", "Sin tipo de cambio — cargar valor manual")
         else:
-            pts = 4
-            estado = "TC bajo — conversión desfavorable"
+            max_score += 20
+            if tc_actual > 1000:
+                pts = 20
+                estado = "TC elevado — conversión favorable"
+            elif tc_actual > 800:
+                pts = 12
+                estado = "TC moderado"
+            else:
+                pts = 4
+                estado = "TC bajo — conversión desfavorable"
 
-        score += pts
-        factores.append({
-            "factor": "Tipo de cambio",
-            "valor": f"${tc_actual} ARS/USD",
-            "precio_neto": f"${precio_neto_ars:,.0f} ARS/tn" if precio_neto_ars else "N/D",
-            "puntos": f"{pts}/20",
-            "estado": estado,
-        })
+            score += pts
+            factores.append({
+                "factor": "Tipo de cambio",
+                "valor": f"${tc_actual} ARS/USD",
+                "precio_neto": f"${precio_neto_ars:,.0f} ARS/tn" if precio_neto_ars else "N/D",
+                "puntos": f"{pts}/20",
+                "estado": estado,
+            })
 
         # ── Factor 3: Ventana logística (0-20 pts) ────────────
-        max_score += 20
-        ventana_ok = clima.get("ventana_cosecha_ok", False)
-        dias_lluvia = clima.get("dias_con_lluvia_7d", 3)
-        dias_helada = clima.get("dias_helada_7d", 0)
+        ventana_ok = clima.get("ventana_cosecha_ok")
+        dias_lluvia = clima.get("dias_con_lluvia_7d")
+        dias_helada = clima.get("dias_helada_7d")
 
-        if ventana_ok:
-            pts = 20
-            estado = "Ventana logística abierta — buenas condiciones"
-        elif dias_lluvia <= 3 and dias_helada == 0:
-            pts = 12
-            estado = "Condiciones aceptables"
-        elif dias_helada > 0:
-            pts = 4
-            estado = f"Alerta: {dias_helada} días con helada proyectados"
+        if ventana_ok is None or dias_lluvia is None or dias_helada is None:
+            _sin_dato("Ventana logística (7 días)", "Sin pronóstico climático disponible")
         else:
-            pts = 6
-            estado = f"{dias_lluvia} días con lluvia — posible corte de rutas"
+            max_score += 20
+            if ventana_ok:
+                pts = 20
+                estado = "Ventana logística abierta — buenas condiciones"
+            elif dias_lluvia <= 3 and dias_helada == 0:
+                pts = 12
+                estado = "Condiciones aceptables"
+            elif dias_helada > 0:
+                pts = 4
+                estado = f"Alerta: {dias_helada} días con helada proyectados"
+            else:
+                pts = 6
+                estado = f"{dias_lluvia} días con lluvia — posible corte de rutas"
 
-        score += pts
-        factores.append({
-            "factor": "Ventana logística (7 días)",
-            "valor": f"{dias_lluvia}d lluvia / {dias_helada}d helada",
-            "puntos": f"{pts}/20",
-            "estado": estado,
-        })
+            score += pts
+            factores.append({
+                "factor": "Ventana logística (7 días)",
+                "valor": f"{dias_lluvia}d lluvia / {dias_helada}d helada",
+                "puntos": f"{pts}/20",
+                "estado": estado,
+            })
 
         # ── Factor 4: Brecha Chicago-Rosario (0-15 pts) ───────
-        max_score += 15
-        brecha_val = brecha.get(f"brecha_{grano}_usd_tn", 0)
-        brecha_pct = brecha.get(f"brecha_{grano}_pct", 0)
+        brecha_val = brecha.get(f"brecha_{grano}_usd_tn")
+        brecha_pct = brecha.get(f"brecha_{grano}_pct")
 
-        if brecha_val < 10:
-            pts = 15
-            estado = "Rosario cerca de Chicago — precio local competitivo"
-        elif brecha_val < 25:
-            pts = 8
-            estado = f"Brecha moderada: USD {brecha_val}/tn vs Chicago"
+        if brecha_val is None:
+            _sin_dato("Brecha Chicago-Rosario",
+                      "Requiere precio Rosario y Chicago — cargar Rosario manual")
         else:
-            pts = 2
-            estado = f"Brecha alta: USD {brecha_val}/tn — Rosario descuenta mucho"
+            max_score += 15
+            if brecha_val < 10:
+                pts = 15
+                estado = "Rosario cerca de Chicago — precio local competitivo"
+            elif brecha_val < 25:
+                pts = 8
+                estado = f"Brecha moderada: USD {brecha_val}/tn vs Chicago"
+            else:
+                pts = 2
+                estado = f"Brecha alta: USD {brecha_val}/tn — Rosario descuenta mucho"
 
-        score += pts
-        factores.append({
-            "factor": "Brecha Chicago-Rosario",
-            "valor": f"USD {brecha_val}/tn ({brecha_pct}%)",
-            "puntos": f"{pts}/15",
-            "estado": estado,
-        })
+            score += pts
+            factores.append({
+                "factor": "Brecha Chicago-Rosario",
+                "valor": f"USD {brecha_val}/tn ({brecha_pct}%)",
+                "puntos": f"{pts}/15",
+                "estado": estado,
+            })
 
         # ── Factor 5: Costo logístico (0-20 pts) ──────────────
-        max_score += 20
-        gasoil = logistica.get("gasoil_ars_litro", 1350)
+        gasoil = logistica.get("gasoil_ars_litro")
+        gasoil_txt = f"${gasoil}/litro" if gasoil is not None else "N/D"
         flete_zona = logistica.get("fletes", {}).get(zona, {}).get("ars_tn", 20000)
 
-        # Flete como % del precio neto ARS
-        if precio_neto_ars and precio_neto_ars > 0:
+        if not precio_neto_ars or precio_neto_ars <= 0:
+            # Sin precio neto no se puede medir el flete como % del precio
+            # (antes se asumía 15% por defecto: dato inventado).
+            _sin_dato("Costo logístico",
+                      "Requiere tipo de cambio y precio de referencia")
+        else:
+            max_score += 20
             flete_pct = (flete_zona / precio_neto_ars) * 100
-        else:
-            flete_pct = 15.0
 
-        if flete_pct < 8:
-            pts = 20
-            estado = "Costo logístico bajo — margen amplio"
-        elif flete_pct < 12:
-            pts = 12
-            estado = "Costo logístico moderado"
-        elif flete_pct < 18:
-            pts = 6
-            estado = "Costo logístico elevado — ajustar márgenes"
-        else:
-            pts = 0
-            estado = "Costo logístico crítico — evaluar destino alternativo"
+            if flete_pct < 8:
+                pts = 20
+                estado = "Costo logístico bajo — margen amplio"
+            elif flete_pct < 12:
+                pts = 12
+                estado = "Costo logístico moderado"
+            elif flete_pct < 18:
+                pts = 6
+                estado = "Costo logístico elevado — ajustar márgenes"
+            else:
+                pts = 0
+                estado = "Costo logístico crítico — evaluar destino alternativo"
 
-        score += pts
-        factores.append({
-            "factor": "Costo logístico",
-            "valor": f"${flete_zona:,.0f} ARS/tn ({flete_pct:.1f}% del precio neto)",
-            "gasoil": f"${gasoil}/litro",
-            "puntos": f"{pts}/20",
-            "estado": estado,
-        })
+            score += pts
+            factores.append({
+                "factor": "Costo logístico",
+                "valor": f"${flete_zona:,.0f} ARS/tn ({flete_pct:.1f}% del precio neto)",
+                "gasoil": gasoil_txt,
+                "puntos": f"{pts}/20",
+                "estado": estado,
+            })
 
         # ── Recomendación final ────────────────────────────────
-        score_pct = round((score / max_score) * 100)
+        score_pct = round((score / max_score) * 100) if max_score else 0
 
-        if score_pct >= 70:
+        if max_score < COBERTURA_MINIMA_PTS:
+            # Con tan pocos factores evaluables una recomendación sería ruido.
+            score_pct = 0
+            recomendacion = "SIN DATOS"
+            color = "#888780"
+            descripcion = (
+                f"Datos insuficientes para recomendar ({max_score}/100 puntos evaluables). "
+                "Cargá valores manuales o reintentá más tarde."
+            )
+        elif score_pct >= 70:
             recomendacion = "VENDER"
             color = "#639922"
             descripcion = "Condiciones favorables. Precio competitivo, ventana logística abierta y tipo de cambio alto."
@@ -573,6 +677,12 @@ class ConectorAgro:
             color = "#E24B4A"
             descripcion = "Condiciones desfavorables. Revisar cobertura y capacidad de almacenamiento."
 
+        if COBERTURA_MINIMA_PTS <= max_score < 100:
+            descripcion += (
+                f" Evaluado con {max_score}/100 puntos posibles: "
+                "faltan datos (ver factores N/D)."
+            )
+
         return {
             "grano":          grano,
             "zona":           zona,
@@ -581,6 +691,7 @@ class ConectorAgro:
             "color":          color,
             "descripcion":    descripcion,
             "factores":       factores,
+            "cobertura_pts":  max_score,
             "timestamp":      datetime.now().isoformat(),
         }
 
@@ -591,23 +702,59 @@ class ConectorAgro:
         lat: float = -33.0,
         lon: float = -63.0,
         zona: str = "cordoba_sur",
+        manuales: Optional[dict] = None,
     ) -> dict:
         """
         Ejecuta todas las consultas agropecuarias en una sola llamada.
         Retorna un snapshot unificado listo para el motor de decisión.
+
+        `manuales`: valores cargados por el usuario (ver CLAVES_MANUALES).
+        Si un valor manual está presente, reemplaza al de la API y se marca
+        con origen "manual"; si no hay API ni manual, queda en None / "sin dato".
         """
+        manuales = limpiar_manuales(manuales)
         zona_label = ZONAS_AGRO.get(zona, {}).get("label", zona)
         log.info(f"Iniciando snapshot agro — {zona_label}")
+
+        cbot = self.precios_cbot_chicago()
+
+        # Precios Rosario: manual > MATBA-ROFEX > sin dato
+        precios = dict(self.precios_futuros_matba())
+        origen_por_grano = {}
+        for grano in ("soja", "maiz", "trigo"):
+            clave = f"{grano}_rosario_usd_tn"
+            if clave in manuales:
+                precios[clave] = manuales[clave]
+                origen_por_grano[grano] = ORIGEN_MANUAL
+            elif precios.get(clave):
+                origen_por_grano[grano] = ORIGEN_VIVO
+            else:
+                origen_por_grano[grano] = ORIGEN_SIN_DATO
+        precios["origen_por_grano"] = origen_por_grano
+
+        # Clima: la lluvia 7d manual reemplaza a la de Open-Meteo
+        clima = dict(self.clima_agro(lat, lon, zona_label))
+        if "lluvia_acumulada_7d_mm" in manuales:
+            clima["lluvia_acumulada_7d_mm"] = manuales["lluvia_acumulada_7d_mm"]
+            clima["origen_lluvia"] = ORIGEN_MANUAL
+
+        # Logística: el gasoil manual reemplaza al de SEPA
+        logistica = dict(self.costos_logisticos())
+        if "gasoil_ars_litro" in manuales:
+            logistica["gasoil_ars_litro"] = manuales["gasoil_ars_litro"]
+            logistica["origen_gasoil"] = ORIGEN_MANUAL
 
         return {
             "timestamp":              datetime.now().isoformat(),
             "zona":                   zona_label,
-            "clima":                  self.clima_agro(lat, lon, zona_label),
-            "precios":                self.precios_futuros_matba(),
-            "precios_chicago":        self.precios_cbot_chicago(),
-            "brecha_chicago_rosario": self.brecha_chicago_rosario(),
-            "tipo_cambio":            self.tipo_cambio_y_retenciones(),
-            "logistica":              self.costos_logisticos(),
+            "clima":                  clima,
+            "precios":                precios,
+            "precios_chicago":        cbot,
+            "brecha_chicago_rosario": self.brecha_chicago_rosario(cbot, precios),
+            "tipo_cambio":            self.tipo_cambio_y_retenciones(
+                                          tc_manual=manuales.get("usd_oficial_ars"),
+                                          cbot=cbot),
+            "logistica":              logistica,
             "cultivos":               self.condicion_cultivos_bcr(),
         }
 
@@ -626,28 +773,26 @@ class ConectorAgro:
 
     # ── Fallbacks ─────────────────────────────────────────────
 
-    def _fallback_precios_granos(self) -> dict:
+    def _sin_precios_rosario(self) -> dict:
+        """Respuesta cuando MATBA-ROFEX no responde: sin precios inventados."""
         return {
-            "soja_rosario_usd_tn":  300.0,
-            "maiz_rosario_usd_tn":  170.0,
-            "trigo_rosario_usd_tn": 200.0,
-            "fuente": "fallback — valores de referencia",
+            "fuente": "MATBA-ROFEX no disponible",
+            "origen": ORIGEN_SIN_DATO,
             "timestamp": datetime.now().isoformat(),
         }
 
-    def _fallback_clima_agro(self, zona: str) -> dict:
+    def _sin_clima_agro(self, zona: str) -> dict:
+        """Respuesta cuando Open-Meteo no responde: sin clima inventado."""
         return {
             "zona":                   zona,
-            "temperatura_c":          18.0,
-            "humedad_pct":            60.0,
-            "precipitacion_mm":       5.0,
-            "lluvia_acumulada_7d_mm": 20.0,
-            "dias_con_lluvia_7d":     2,
-            "dias_helada_7d":         0,
-            "ventana_cosecha_ok":     True,
+            "lluvia_acumulada_7d_mm": None,
+            "origen_lluvia":          ORIGEN_SIN_DATO,
+            "dias_con_lluvia_7d":     None,
+            "dias_helada_7d":         None,
+            "ventana_cosecha_ok":     None,
             "alerta_helada":          False,
             "alerta_sequia":          False,
-            "fuente": "fallback",
+            "fuente":                 "Open-Meteo no disponible",
         }
 
 
