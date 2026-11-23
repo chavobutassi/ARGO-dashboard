@@ -249,6 +249,7 @@ def _panel_valores_manuales() -> html.Details:
             _campo("man-trigo",  "Trigo Rosario", "USD/tn", 1),
             _campo("man-tc",     "Dólar oficial", "ARS/USD", 1),
             _campo("man-gasoil", "Gasoil",        "ARS/L", 1),
+            _campo("man-flete",  "Flete a puerto", "ARS/tn", 100),
             _campo("man-lluvia", "Lluvia 7d",     "mm", 0.1),
         ]),
         html.Div("Retenciones (por defecto: soja 33%, maíz 12%, trigo 12%, girasol 7% "
@@ -2433,13 +2434,14 @@ def actualizar_global_usda(_i):
     Input("man-tc",                "value"),
     Input("man-gasoil",            "value"),
     Input("man-lluvia",            "value"),
+    Input("man-flete",             "value"),
     Input("man-ret-soja",          "value"),
     Input("man-ret-maiz",          "value"),
     Input("man-ret-trigo",         "value"),
     Input("man-ret-girasol",       "value"),
 )
 def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep,
-                                m_soja, m_maiz, m_trigo, m_tc, m_gasoil, m_lluvia,
+                                m_soja, m_maiz, m_trigo, m_tc, m_gasoil, m_lluvia, m_flete,
                                 r_soja, r_maiz, r_trigo, r_girasol):
     visible = {"marginBottom": "14px"}
 
@@ -2468,6 +2470,7 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep,
             "usd_oficial_ars":        m_tc,
             "gasoil_ars_litro":       m_gasoil,
             "lluvia_acumulada_7d_mm": m_lluvia,
+            "flete_ars_tn":           m_flete,
             "ret_soja_pct":           r_soja,
             "ret_maiz_pct":           r_maiz,
             "ret_trigo_pct":          r_trigo,
@@ -2628,7 +2631,7 @@ def actualizar_panel_agro_macro(zona, cultivo, campaña, _clicks, _sitrep,
             pct_pts = 50
         c = (COLORES["BAJO"] if pct_pts >= 70 else
              COLORES["MEDIO"] if pct_pts >= 40 else COLORES["CRITICO"])
-        if pts_str == "N/D":          # factor sin dato: neutro, no ámbar
+        if pts_str in ("N/D", "info"):  # sin dato / informativo: neutro, no ámbar
             c = COLORES["texto2"]
         return html.Div(style={
             "display": "flex", "alignItems": "center", "gap": "10px",

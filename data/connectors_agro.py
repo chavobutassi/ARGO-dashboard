@@ -59,6 +59,25 @@ MATBA_SIMBOLOS = {          # índices continuos de futuros, en USD/tn
     "trigo": "I.TRIGO",
 }
 
+# ── Calibración del score de decisión de venta ───────────────
+# Criterio: nada depende de un nivel absoluto "a ojo" que envejece (precios en
+# USD, dólar nominal, fletes en ARS). Cada factor compara contra una referencia
+# que el propio dato aporta:
+#   - Precio:  posición (percentil) del precio CBOT en sus últimos 12 meses.
+#   - Brecha:  precio Rosario vs paridad de exportación = CBOT × (1 − retención).
+#              El gap CBOT−Rosario es estructural (retenciones + base), así que
+#              se mide contra esa paridad y reacciona si cambian las retenciones.
+#   - Ventana: pronóstico a 7 días (lluvia/helada).
+#   - Flete:   % del precio neto; usa el flete vigente que cargue el usuario.
+#   - Tipo de cambio: solo informativo (un dólar nominal alto no dice si
+#     conviene vender o esperar).
+# Cada banda es (umbral, fracción del peso del factor).
+PESOS_SCORE = {"precio": 30, "brecha": 20, "ventana": 25, "flete": 25}   # suma 100
+PERCENTIL_BANDAS = ((70, 1.0), (40, 0.6), (20, 0.3))      # resto → 0
+PARIDAD_BANDAS = ((1.05, 1.0), (0.95, 0.5))               # resto → 0.1
+FLETE_PCT_BANDAS = ((8, 1.0), (12, 0.6), (18, 0.3))       # % del neto; resto → 0
+MIN_DIAS_HISTORIA = 120                                   # ruedas mínimas para el percentil
+
 # Puntos mínimos (de 100) con dato real para emitir VENDER/ESPERAR/ATENCION
 COBERTURA_MINIMA_PTS = 50
 
@@ -69,6 +88,7 @@ CLAVES_MANUALES = (
     "trigo_rosario_usd_tn",
     "usd_oficial_ars",
     "gasoil_ars_litro",
+    "flete_ars_tn",
     "lluvia_acumulada_7d_mm",
     "ret_soja_pct",
     "ret_maiz_pct",
@@ -213,8 +233,9 @@ class ConectorAgro:
 
     def precios_cbot_chicago(self) -> dict:
         """
-        Precios de referencia Chicago (CBOT) vía Yahoo Finance.
-        Útil para calcular la brecha Chicago vs Rosario.
+        Precios de referencia Chicago (CBOT) vía Yahoo Finance, en USD/tn, con
+        la posición del precio actual en el rango de los últimos 12 meses
+        (`<grano>_percentil_12m`, 0-100).
         """
         clave = "cbot_chicago"
         if cached := self._from_cache(clave):
@@ -234,16 +255,27 @@ class ConectorAgro:
             try:
                 url = (
                     f"https://query1.finance.yahoo.com/v8/finance/chart/{simbolo}"
-                    "?interval=1d&range=1d"
+                    "?interval=1d&range=1y"
                 )
                 resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
                 resp.raise_for_status()
-                precio_raw = (
-                    resp.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]
-                )
-                precio = round(precio_raw * FACTOR_CENTAVOS_BU_A_USD_TN[grano], 2)
-                if es_plausible(grano, precio):
-                    datos[nombre] = precio
+                resultado = resp.json()["chart"]["result"][0]
+                factor = FACTOR_CENTAVOS_BU_A_USD_TN[grano]
+                precio = round(resultado["meta"]["regularMarketPrice"] * factor, 2)
+                if not es_plausible(grano, precio):
+                    continue
+                datos[nombre] = precio
+
+                cierres = [
+                    c * factor
+                    for c in (resultado.get("indicators", {}).get("quote") or [{}])[0].get("close", [])
+                    if c
+                ]
+                if len(cierres) >= MIN_DIAS_HISTORIA:
+                    por_debajo = sum(1 for c in cierres if c <= precio)
+                    datos[f"{grano}_percentil_12m"] = round(por_debajo / len(cierres) * 100, 1)
+                    datos[f"{grano}_min_12m"] = round(min(cierres), 2)
+                    datos[f"{grano}_max_12m"] = round(max(cierres), 2)
             except Exception as e:
                 log.warning(f"CBOT {nombre} no disponible ({e})")
 
@@ -255,17 +287,23 @@ class ConectorAgro:
         self,
         cbot: Optional[dict] = None,
         matba: Optional[dict] = None,
+        retenciones: Optional[dict] = None,
     ) -> dict:
         """
-        Calcula la diferencia de precio entre Chicago y Rosario.
-        Una brecha positiva indica que Rosario está barato vs referencia global.
-        Útil para decidir si retener o vender.
+        Compara Rosario con Chicago.
 
-        Acepta `cbot` y `matba` ya resueltos (p. ej. con precios Rosario
-        cargados a mano); si no se pasan, los consulta.
+        - `brecha_*`: diferencia simple Chicago − Rosario (informativa; es
+          estructuralmente positiva por retenciones y base).
+        - `paridad_*` / `ratio_paridad_*`: paridad de exportación
+          CBOT × (1 − retención) y Rosario / paridad. Un ratio ≥ 1 indica que
+          Rosario no está descontado más allá de lo que explican las retenciones.
+
+        Acepta `cbot`, `matba` y `retenciones` ya resueltos (p. ej. con valores
+        manuales); si no se pasan, consulta/usa los valores por defecto.
         """
         cbot = cbot if cbot is not None else self.precios_cbot_chicago()
         matba = matba if matba is not None else self.precios_futuros_matba()
+        retenciones = retenciones or RETENCIONES_DEFAULT
 
         resultado = {"timestamp": datetime.now().isoformat()}
 
@@ -276,6 +314,9 @@ class ConectorAgro:
                 brecha = round(chicago - rosario, 2)
                 resultado[f"brecha_{grano}_usd_tn"] = brecha
                 resultado[f"brecha_{grano}_pct"] = round((brecha / chicago) * 100, 1)
+                paridad = chicago * (1 - retenciones.get(grano, 0))
+                resultado[f"paridad_{grano}_usd_tn"] = round(paridad, 2)
+                resultado[f"ratio_paridad_{grano}"] = round(rosario / paridad, 3)
 
         return resultado
 
@@ -483,7 +524,7 @@ class ConectorAgro:
             "plantas_referencia":  PLANTAS_REFERENCIA,
             "timestamp":           datetime.now().isoformat(),
             "fuente":              "SEPA + valores de referencia por zona",
-            "nota":                "Fletes aproximados a puerto Rosario. Verificar con transportista.",
+            "nota":                "Los fletes de referencia están desactualizados y no puntúan: cargar el flete vigente en Valores manuales.",
         }
 
         if origen_gasoil == ORIGEN_VIVO:   # no cachear el "sin dato"
@@ -555,9 +596,17 @@ class ConectorAgro:
 
         clima  = snapshot.get("clima", {})
         precios = snapshot.get("precios", {})
+        chicago = snapshot.get("precios_chicago", {})
         tc     = snapshot.get("tipo_cambio", {})
         logistica = snapshot.get("logistica", {})
         brecha = snapshot.get("brecha_chicago_rosario", {})
+
+        def _banda(valor, bandas, resto):
+            """Fracción del peso según la primera banda (umbral, fracción) alcanzada."""
+            for umbral, fraccion in bandas:
+                if valor >= umbral:
+                    return fraccion
+            return resto
 
         def _sin_dato(nombre: str, motivo: str):
             """Factor sin dato: no suma puntos ni cuenta en el máximo."""
@@ -566,67 +615,45 @@ class ConectorAgro:
                 "puntos": "N/D", "estado": motivo,
             })
 
-        # ── Factor 1: Precio relativo (0-25 pts) ──────────────
-        precio_actual = precios.get(f"{grano}_rosario_usd_tn") or \
-                        snapshot.get("precios_chicago", {}).get(f"{grano}_chicago_usd_tn")
-
-        # Umbrales de referencia por grano (USD/tn)
-        umbrales = {"soja": 300, "maiz": 170, "trigo": 200, "girasol": 350}
-        umbral = umbrales.get(grano, 300)
-
-        if precio_actual is None:
-            _sin_dato("Precio de mercado", "Sin precio disponible — cargar valor manual")
-        else:
-            max_score += 25
-            if precio_actual > umbral * 1.10:
-                pts = 25
-                estado = "Precio alto — favorable para venta"
-            elif precio_actual > umbral:
-                pts = 15
-                estado = "Precio sobre umbral de referencia"
-            elif precio_actual > umbral * 0.90:
-                pts = 8
-                estado = "Precio bajo umbral — evaluar esperar"
-            else:
-                pts = 0
-                estado = "Precio bajo — desfavorable para venta"
-
+        def _puntuar(nombre, peso, fraccion, valor, estado, **extra):
+            nonlocal score, max_score
+            pts = round(peso * fraccion)
+            max_score += peso
             score += pts
-            factores.append({
-                "factor": "Precio de mercado",
-                "valor": f"USD {precio_actual}/tn",
-                "puntos": f"{pts}/25",
-                "estado": estado,
-            })
+            factores.append({"factor": nombre, "valor": valor,
+                             "puntos": f"{pts}/{peso}", "estado": estado, **extra})
 
-        # ── Factor 2: Tipo de cambio (0-20 pts) ───────────────
+        # ── Factor 1: Precio — posición en los últimos 12 meses ───
+        pct = chicago.get(f"{grano}_percentil_12m")
+        if pct is None:
+            _sin_dato("Precio de mercado (12 meses)",
+                      "Sin historia de 12 meses del precio CBOT")
+        else:
+            fr = _banda(pct, PERCENTIL_BANDAS, 0.0)
+            estado = ("Precio en el tramo alto del último año — favorable para vender" if fr == 1.0 else
+                      "Precio en zona media-alta del último año" if fr >= 0.6 else
+                      "Precio en zona media-baja del último año — evaluar esperar" if fr > 0 else
+                      "Precio en el tramo bajo del último año — desfavorable para vender")
+            _puntuar("Precio de mercado (12 meses)", PESOS_SCORE["precio"], fr,
+                     f"CBOT USD {chicago.get(f'{grano}_chicago_usd_tn')}/tn · percentil {pct:.0f} "
+                     f"(rango USD {chicago.get(f'{grano}_min_12m')}–{chicago.get(f'{grano}_max_12m')})",
+                     estado)
+
+        # ── Tipo de cambio: informativo, no puntúa ────────────
         tc_actual = tc.get("usd_oficial_ars")
         precio_neto_ars = tc.get(f"{grano}_precio_neto_ars_tn", 0)
-
         if tc_actual is None:
             _sin_dato("Tipo de cambio", "Sin tipo de cambio — cargar valor manual")
         else:
-            max_score += 20
-            if tc_actual > 1000:
-                pts = 20
-                estado = "TC elevado — conversión favorable"
-            elif tc_actual > 800:
-                pts = 12
-                estado = "TC moderado"
-            else:
-                pts = 4
-                estado = "TC bajo — conversión desfavorable"
-
-            score += pts
             factores.append({
                 "factor": "Tipo de cambio",
                 "valor": f"${tc_actual} ARS/USD",
                 "precio_neto": f"${precio_neto_ars:,.0f} ARS/tn" if precio_neto_ars else "N/D",
-                "puntos": f"{pts}/20",
-                "estado": estado,
+                "puntos": "info",
+                "estado": "Informativo: un dólar nominal alto no indica si conviene vender o esperar",
             })
 
-        # ── Factor 3: Ventana logística (0-20 pts) ────────────
+        # ── Factor 3: Ventana logística (7 días) ──────────────
         ventana_ok = clima.get("ventana_cosecha_ok")
         dias_lluvia = clima.get("dias_con_lluvia_7d")
         dias_helada = clima.get("dias_helada_7d")
@@ -634,90 +661,59 @@ class ConectorAgro:
         if ventana_ok is None or dias_lluvia is None or dias_helada is None:
             _sin_dato("Ventana logística (7 días)", "Sin pronóstico climático disponible")
         else:
-            max_score += 20
             if ventana_ok:
-                pts = 20
-                estado = "Ventana logística abierta — buenas condiciones"
+                fr, estado = 1.0, "Ventana logística abierta — buenas condiciones"
             elif dias_lluvia <= 3 and dias_helada == 0:
-                pts = 12
-                estado = "Condiciones aceptables"
+                fr, estado = 0.6, "Condiciones aceptables"
             elif dias_helada > 0:
-                pts = 4
-                estado = f"Alerta: {dias_helada} días con helada proyectados"
+                fr, estado = 0.2, f"Alerta: {dias_helada} días con helada proyectados"
             else:
-                pts = 6
-                estado = f"{dias_lluvia} días con lluvia — posible corte de rutas"
+                fr, estado = 0.3, f"{dias_lluvia} días con lluvia — posible corte de rutas"
+            _puntuar("Ventana logística (7 días)", PESOS_SCORE["ventana"], fr,
+                     f"{dias_lluvia}d lluvia / {dias_helada}d helada", estado)
 
-            score += pts
-            factores.append({
-                "factor": "Ventana logística (7 días)",
-                "valor": f"{dias_lluvia}d lluvia / {dias_helada}d helada",
-                "puntos": f"{pts}/20",
-                "estado": estado,
-            })
-
-        # ── Factor 4: Brecha Chicago-Rosario (0-15 pts) ───────
-        brecha_val = brecha.get(f"brecha_{grano}_usd_tn")
-        brecha_pct = brecha.get(f"brecha_{grano}_pct")
-
-        if brecha_val is None:
-            _sin_dato("Brecha Chicago-Rosario",
+        # ── Factor 4: Rosario vs paridad de exportación ───────
+        ratio = brecha.get(f"ratio_paridad_{grano}")
+        if ratio is None:
+            _sin_dato("Rosario vs paridad de exportación",
                       "Requiere precio Rosario y Chicago — cargar Rosario manual")
         else:
-            max_score += 15
-            if brecha_val < 10:
-                pts = 15
-                estado = "Rosario cerca de Chicago — precio local competitivo"
-            elif brecha_val < 25:
-                pts = 8
-                estado = f"Brecha moderada: USD {brecha_val}/tn vs Chicago"
-            else:
-                pts = 2
-                estado = f"Brecha alta: USD {brecha_val}/tn — Rosario descuenta mucho"
+            fr = _banda(ratio, PARIDAD_BANDAS, 0.1)
+            estado = ("Rosario por encima de la paridad — precio local competitivo" if fr == 1.0 else
+                      "Rosario cerca de la paridad" if fr == 0.5 else
+                      "Rosario descontado frente a la paridad — conviene esperar")
+            _puntuar("Rosario vs paridad de exportación", PESOS_SCORE["brecha"], fr,
+                     f"USD {precios.get(f'{grano}_rosario_usd_tn')} vs paridad "
+                     f"USD {brecha.get(f'paridad_{grano}_usd_tn')} ({(ratio - 1) * 100:+.0f}%)",
+                     estado)
 
-            score += pts
-            factores.append({
-                "factor": "Brecha Chicago-Rosario",
-                "valor": f"USD {brecha_val}/tn ({brecha_pct}%)",
-                "puntos": f"{pts}/15",
-                "estado": estado,
-            })
-
-        # ── Factor 5: Costo logístico (0-20 pts) ──────────────
+        # ── Factor 5: Costo logístico (flete vigente cargado) ──
         gasoil = logistica.get("gasoil_ars_litro")
         gasoil_txt = f"${gasoil}/litro" if gasoil is not None else "N/D"
-        flete_zona = logistica.get("fletes", {}).get(zona, {}).get("ars_tn", 20000)
+        flete = logistica.get("flete_ars_tn")
 
-        if not precio_neto_ars or precio_neto_ars <= 0:
-            # Sin precio neto no se puede medir el flete como % del precio
-            # (antes se asumía 15% por defecto: dato inventado).
+        if flete is None:
+            _sin_dato("Costo logístico",
+                      "Cargar el flete vigente a puerto (ARS/tn) para evaluarlo")
+        elif not precio_neto_ars or precio_neto_ars <= 0:
             _sin_dato("Costo logístico",
                       "Requiere tipo de cambio y precio de referencia")
         else:
-            max_score += 20
-            flete_pct = (flete_zona / precio_neto_ars) * 100
-
-            if flete_pct < 8:
-                pts = 20
-                estado = "Costo logístico bajo — margen amplio"
-            elif flete_pct < 12:
-                pts = 12
-                estado = "Costo logístico moderado"
-            elif flete_pct < 18:
-                pts = 6
-                estado = "Costo logístico elevado — ajustar márgenes"
+            flete_pct = (flete / precio_neto_ars) * 100
+            fr = 1.0
+            for umbral, fraccion in FLETE_PCT_BANDAS:
+                if flete_pct < umbral:
+                    fr = fraccion
+                    break
             else:
-                pts = 0
-                estado = "Costo logístico crítico — evaluar destino alternativo"
-
-            score += pts
-            factores.append({
-                "factor": "Costo logístico",
-                "valor": f"${flete_zona:,.0f} ARS/tn ({flete_pct:.1f}% del precio neto)",
-                "gasoil": gasoil_txt,
-                "puntos": f"{pts}/20",
-                "estado": estado,
-            })
+                fr = 0.0
+            estado = ("Costo logístico bajo — margen amplio" if fr == 1.0 else
+                      "Costo logístico moderado" if fr == 0.6 else
+                      "Costo logístico elevado — ajustar márgenes" if fr == 0.3 else
+                      "Costo logístico crítico — evaluar destino alternativo")
+            _puntuar("Costo logístico", PESOS_SCORE["flete"], fr,
+                     f"${flete:,.0f} ARS/tn ({flete_pct:.1f}% del precio neto)", estado,
+                     gasoil=gasoil_txt)
 
         # ── Recomendación final ────────────────────────────────
         score_pct = round((score / max_score) * 100) if max_score else 0
@@ -734,7 +730,7 @@ class ConectorAgro:
         elif score_pct >= 70:
             recomendacion = "VENDER"
             color = "#639922"
-            descripcion = "Condiciones favorables. Precio competitivo, ventana logística abierta y tipo de cambio alto."
+            descripcion = "Condiciones favorables. Precio en zona alta, ventana logística abierta y Rosario sin descuento anormal."
         elif score_pct >= 45:
             recomendacion = "ESPERAR"
             color = "#BA7517"
@@ -810,6 +806,17 @@ class ConectorAgro:
         if "gasoil_ars_litro" in manuales:
             logistica["gasoil_ars_litro"] = manuales["gasoil_ars_litro"]
             logistica["origen_gasoil"] = ORIGEN_MANUAL
+        # Flete vigente a puerto (ARS/tn): solo se evalúa si lo carga el usuario;
+        # la tabla de fletes de referencia está desactualizada y no puntúa.
+        if "flete_ars_tn" in manuales:
+            logistica["flete_ars_tn"] = manuales["flete_ars_tn"]
+            logistica["origen_flete"] = ORIGEN_MANUAL
+
+        tipo_cambio = self.tipo_cambio_y_retenciones(
+            tc_manual=manuales.get("usd_oficial_ars"),
+            cbot=cbot,
+            retenciones_manual={k: v for k, v in manuales.items() if k.startswith("ret_")},
+        )
 
         return {
             "timestamp":              datetime.now().isoformat(),
@@ -817,13 +824,9 @@ class ConectorAgro:
             "clima":                  clima,
             "precios":                precios,
             "precios_chicago":        cbot,
-            "brecha_chicago_rosario": self.brecha_chicago_rosario(cbot, precios),
-            "tipo_cambio":            self.tipo_cambio_y_retenciones(
-                                          tc_manual=manuales.get("usd_oficial_ars"),
-                                          cbot=cbot,
-                                          retenciones_manual={
-                                              k: v for k, v in manuales.items()
-                                              if k.startswith("ret_")}),
+            "brecha_chicago_rosario": self.brecha_chicago_rosario(
+                                          cbot, precios, tipo_cambio.get("retenciones")),
+            "tipo_cambio":            tipo_cambio,
             "logistica":              logistica,
             "cultivos":               self.condicion_cultivos_bcr(),
         }
