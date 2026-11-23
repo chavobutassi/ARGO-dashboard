@@ -23,6 +23,7 @@ Uso básico:
 """
 
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -39,6 +40,25 @@ ORIGEN_VIVO = "en vivo"
 ORIGEN_MANUAL = "manual"
 ORIGEN_SIN_DATO = "sin dato"
 
+# Retenciones por defecto (fracción). Son valores de referencia fijos en el
+# código: se pueden reemplazar desde el panel ("Valores manuales") y conviene
+# verificarlos ante cambios de política.
+RETENCIONES_DEFAULT = {
+    "soja":    0.33,
+    "maiz":    0.12,
+    "trigo":   0.12,
+    "girasol": 0.07,
+}
+
+# API MATBA-ROFEX v2: requiere usuario/contraseña propios (registro + permisos
+# pedidos a investigacion@matbarofex.com.ar). Se leen de variables de entorno.
+MATBA_BASE = "https://api.matbarofex.com.ar/v2"
+MATBA_SIMBOLOS = {          # índices continuos de futuros, en USD/tn
+    "soja":  "I.SOJA",
+    "maiz":  "I.MAIZ",
+    "trigo": "I.TRIGO",
+}
+
 # Puntos mínimos (de 100) con dato real para emitir VENDER/ESPERAR/ATENCION
 COBERTURA_MINIMA_PTS = 50
 
@@ -50,6 +70,10 @@ CLAVES_MANUALES = (
     "usd_oficial_ars",
     "gasoil_ars_litro",
     "lluvia_acumulada_7d_mm",
+    "ret_soja_pct",
+    "ret_maiz_pct",
+    "ret_trigo_pct",
+    "ret_girasol_pct",
 )
 
 
@@ -67,7 +91,12 @@ def limpiar_manuales(manuales: Optional[dict]) -> dict:
             valor = float(crudo)
         except (TypeError, ValueError):
             continue
-        minimo_ok = valor >= 0 if clave == "lluvia_acumulada_7d_mm" else valor > 0
+        if clave.startswith("ret_"):
+            minimo_ok = 0 <= valor <= 100          # porcentaje
+        elif clave == "lluvia_acumulada_7d_mm":
+            minimo_ok = valor >= 0
+        else:
+            minimo_ok = valor > 0
         if minimo_ok and valor == valor:  # descarta NaN
             limpios[clave] = valor
     return limpios
@@ -107,40 +136,72 @@ class ConectorAgro:
 
     # ── PRECIOS GRANOS — MATBA-ROFEX ──────────────────────────
 
+    def _matba_token(self) -> Optional[str]:
+        """
+        Token de acceso de la API MATBA-ROFEX (válido hasta 24 h).
+        Credenciales en las variables de entorno MATBA_USER y MATBA_PASSWORD.
+        """
+        entry = self._cache.get("matba_token")
+        if entry and datetime.now() - entry["ts"] < timedelta(hours=23):
+            return entry["datos"]
+
+        usuario = os.environ.get("MATBA_USER")
+        clave = os.environ.get("MATBA_PASSWORD")
+        if not usuario or not clave:
+            return None
+
+        resp = requests.post(
+            f"{MATBA_BASE}/token/",
+            json={"username": usuario, "password": clave},
+            timeout=TIMEOUT, headers=HEADERS,
+        )
+        resp.raise_for_status()
+        cuerpo = resp.json()
+        token = cuerpo.get("access") or cuerpo.get("access_token")
+        if not token:
+            raise ValueError("respuesta de token sin campo de acceso")
+        self._cache["matba_token"] = {"datos": token, "ts": datetime.now()}
+        return token
+
     def precios_futuros_matba(self) -> dict:
         """
-        Precios de futuros de granos en MATBA-ROFEX (Rosario).
-        Endpoint público sin autenticación.
-        Retorna posición más cercana para soja, maíz y trigo.
+        Índices continuos de futuros de granos de MATBA-ROFEX (USD/tn):
+        I.SOJA, I.MAIZ, I.TRIGO. Es una referencia de futuros ponderada por
+        vencimiento, no el precio pizarra disponible.
+
+        Requiere credenciales propias en MATBA_USER / MATBA_PASSWORD
+        (documentación: matbarofex.com.ar/Indices-mtr/documentacion).
+        Sin credenciales o con error → sin dato (se puede cargar a mano).
         """
         clave = "matba_futuros"
         if cached := self._from_cache(clave):
             return cached
 
         try:
-            url = "https://api.matbarofex.com.ar/v2/rest/marketdata/products"
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-            resp.raise_for_status()
-            raw = resp.json()
+            token = self._matba_token()
+            if token is None:
+                log.info("MATBA-ROFEX sin credenciales (MATBA_USER / MATBA_PASSWORD)")
+                return self._sin_precios_rosario("sin credenciales MATBA-ROFEX")
 
             datos: dict = {
                 "timestamp": datetime.now().isoformat(),
-                "fuente": "MATBA-ROFEX (tiempo real)",
+                "fuente": "MATBA-ROFEX índice continuo de futuros",
             }
+            for grano, simbolo in MATBA_SIMBOLOS.items():
+                resp = requests.get(
+                    f"{MATBA_BASE}/symbol/{simbolo}",
+                    timeout=TIMEOUT,
+                    headers={**HEADERS, "Authorization": f"Bearer {token}"},
+                )
+                if resp.status_code == 401:
+                    self._cache.pop("matba_token", None)   # token vencido
+                resp.raise_for_status()
+                valor = resp.json().get("indexValue")
+                if valor:
+                    datos[f"{grano}_rosario_usd_tn"] = float(valor)
 
-            # Buscar soja, maíz y trigo en los productos
-            for producto in raw.get("products", []):
-                nombre = producto.get("name", "").lower()
-                precio = producto.get("lastPrice") or producto.get("settlementPrice")
-                if not precio:
-                    continue
-                if "soja" in nombre:
-                    datos.setdefault("soja_rosario_usd_tn", float(precio))
-                elif "maiz" in nombre or "maíz" in nombre:
-                    datos.setdefault("maiz_rosario_usd_tn", float(precio))
-                elif "trigo" in nombre:
-                    datos.setdefault("trigo_rosario_usd_tn", float(precio))
-
+            if not any(k.endswith("_rosario_usd_tn") for k in datos):
+                return self._sin_precios_rosario("MATBA-ROFEX sin valores")
             self._to_cache(clave, datos)
             log.info(f"MATBA-ROFEX OK — soja: {datos.get('soja_rosario_usd_tn')} USD/tn")
             return datos
@@ -148,7 +209,7 @@ class ConectorAgro:
         except Exception as e:
             # Sin valores inventados: el panel muestra "N/D" o el valor manual.
             log.warning(f"MATBA-ROFEX no disponible ({e}) — sin precio Rosario en vivo")
-            return self._sin_precios_rosario()
+            return self._sin_precios_rosario(str(e))
 
     def precios_cbot_chicago(self) -> dict:
         """
@@ -224,6 +285,7 @@ class ConectorAgro:
         self,
         tc_manual: Optional[float] = None,
         cbot: Optional[dict] = None,
+        retenciones_manual: Optional[dict] = None,
     ) -> dict:
         """
         Tipo de cambio oficial + retenciones vigentes por cultivo.
@@ -235,8 +297,10 @@ class ConectorAgro:
           - "sin dato": la API falló y no hay valor manual → `usd_oficial_ars` = None
         """
         clave = "tc_retenciones"
+        retenciones_manual = retenciones_manual or {}
+        usa_cache = tc_manual is None and not retenciones_manual
         if tc_manual is None:
-            if cached := self._from_cache(clave):
+            if usa_cache and (cached := self._from_cache(clave)):
                 return cached
             try:
                 url = "https://dolarapi.com/v1/dolares/oficial"
@@ -251,18 +315,21 @@ class ConectorAgro:
         else:
             tc_oficial, origen = round(float(tc_manual), 2), ORIGEN_MANUAL
 
-        # Retenciones vigentes (actualizar si cambia política)
-        retenciones = {
-            "soja":  0.33,   # 33%
-            "maiz":  0.12,   # 12%
-            "trigo": 0.12,   # 12%
-            "girasol": 0.07, # 7%
+        # Retenciones: valores por defecto del código, reemplazables a mano (en %)
+        retenciones = dict(RETENCIONES_DEFAULT)
+        for grano in retenciones:
+            if f"ret_{grano}_pct" in retenciones_manual:
+                retenciones[grano] = retenciones_manual[f"ret_{grano}_pct"] / 100
+        origen_ret = {
+            g: (ORIGEN_MANUAL if f"ret_{g}_pct" in retenciones_manual else "referencia")
+            for g in retenciones
         }
 
         datos = {
             "usd_oficial_ars":  tc_oficial,
             "origen":           origen,
             "retenciones":      retenciones,
+            "origen_retenciones": origen_ret,
             "timestamp":        datetime.now().isoformat(),
             "fuente":           "dolarapi.com (oficial) + retenciones vigentes",
             "nota":             "Verificar retenciones ante cambios de política",
@@ -280,7 +347,7 @@ class ConectorAgro:
                         precio_neto_usd * tc_oficial, 0
                     )
 
-        if tc_manual is None and origen == ORIGEN_VIVO:
+        if usa_cache and origen == ORIGEN_VIVO:
             self._to_cache(clave, datos)
         return datos
 
@@ -753,7 +820,10 @@ class ConectorAgro:
             "brecha_chicago_rosario": self.brecha_chicago_rosario(cbot, precios),
             "tipo_cambio":            self.tipo_cambio_y_retenciones(
                                           tc_manual=manuales.get("usd_oficial_ars"),
-                                          cbot=cbot),
+                                          cbot=cbot,
+                                          retenciones_manual={
+                                              k: v for k, v in manuales.items()
+                                              if k.startswith("ret_")}),
             "logistica":              logistica,
             "cultivos":               self.condicion_cultivos_bcr(),
         }
@@ -773,10 +843,10 @@ class ConectorAgro:
 
     # ── Fallbacks ─────────────────────────────────────────────
 
-    def _sin_precios_rosario(self) -> dict:
+    def _sin_precios_rosario(self, motivo: str = "no disponible") -> dict:
         """Respuesta cuando MATBA-ROFEX no responde: sin precios inventados."""
         return {
-            "fuente": "MATBA-ROFEX no disponible",
+            "fuente": f"MATBA-ROFEX: {motivo}",
             "origen": ORIGEN_SIN_DATO,
             "timestamp": datetime.now().isoformat(),
         }
