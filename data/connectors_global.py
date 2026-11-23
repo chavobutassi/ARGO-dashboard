@@ -21,6 +21,7 @@ Uso básico:
 """
 
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -169,64 +170,56 @@ class ConectorGlobal:
 
     def oferta_demanda_usda(self, cultivo: str = "soja") -> dict:
         """
-        Datos de oferta y demanda mundial del USDA (Public Dataset).
-        Incluye producción global, stocks y comercio mundial.
+        Oferta y demanda MUNDIAL del USDA (PSD, FAS Open Data Services).
+
+        Usa el endpoint de totales mundiales
+        `/api/psd/commodity/{code}/world/year/{marketYear}` de
+        https://apps.fas.usda.gov/OpenData, que exige una API key gratuita de
+        api.data.gov en la variable de entorno USDA_API_KEY (header `API_KEY`).
+        Sin clave o con error → valores de referencia rotulados como tales.
+
+        La documentación oficial no define los nombres de campos de la
+        respuesta, por eso el parseo es tolerante a camelCase/PascalCase.
         """
         clave = f"usda_psd_{cultivo}"
         if cached := self._from_cache(clave):
             return cached
 
-        # Códigos USDA por cultivo
-        usda_commodities = {
-            "soja":  "2222000",
-            "maiz":  "0440100",
-            "trigo": "0410000",
-        }
-        commodity_code = usda_commodities.get(cultivo, "2222000")
+        api_key = os.environ.get("USDA_API_KEY")
+        if not api_key:
+            log.info("USDA PSD sin USDA_API_KEY — usando referencia")
+            return self._fallback_usda(cultivo, "falta USDA_API_KEY")
 
         try:
-            url = (
-                "https://apps.fas.usda.gov/psdonline/api/psd/commodity"
-                f"/{commodity_code}"
-            )
-            resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
-            resp.raise_for_status()
-            raw = resp.json()
+            codigo = self._usda_codigo_commodity(cultivo, api_key)
+            atributos_id = self._usda_atributos(api_key)
 
-            # Tomar el año más reciente
-            años = sorted(set(r.get("marketYear", 0) for r in raw), reverse=True)
-            año_actual = años[0] if años else datetime.now().year
-
-            datos_año = [r for r in raw if r.get("marketYear") == año_actual]
-
-            # Agregar atributos clave
-            atributos = {}
-            nombres_attr = {
-                "Production":           "produccion_global_mm_tn",
-                "TotalSupply":          "oferta_total_mm_tn",
-                "Exports":              "exportaciones_mm_tn",
-                "Imports":              "importaciones_mm_tn",
-                "EndingStocks":         "stocks_finales_mm_tn",
-                "StocksToUsage":        "ratio_stocks_uso_pct",
-            }
-            for r in datos_año:
-                attr = r.get("attributeDescription", "")
-                val  = r.get("value", 0)
-                if attr in nombres_attr and val:
-                    atributos[nombres_attr[attr]] = round(float(val) / 1000, 2)
+            ahora = datetime.now().year
+            for market_year in (ahora + 1, ahora, ahora - 1):
+                filas = self._usda_get(
+                    f"/api/psd/commodity/{codigo}/world/year/{market_year}", api_key)
+                valores = self._usda_valores(filas, atributos_id)
+                if valores.get("produccion_global_mm_tn"):
+                    break
+            else:
+                return self._fallback_usda(cultivo, "USDA sin datos recientes")
 
             resultado = {
-                "cultivo":     cultivo,
-                "año":         año_actual,
-                "campaña":     self.etiqueta_campaña(año_actual),
-                "fuente":      "USDA PSD (Public Sector Data)",
-                "timestamp":   datetime.now().isoformat(),
-                **atributos,
+                "cultivo":   cultivo,
+                "año":       market_year,
+                "campaña":   self.etiqueta_campaña(market_year),
+                "fuente":    "USDA PSD (FAS Open Data Services)",
+                "timestamp": datetime.now().isoformat(),
+                **valores,
             }
 
             # Señal de mercado basada en ratio stocks/uso
-            ratio = atributos.get("ratio_stocks_uso_pct", 0)
-            if ratio < 15:
+            ratio = valores.get("ratio_stocks_uso_pct")
+            if ratio is None:
+                resultado["señal_stocks"] = "N/D"
+                resultado["señal_color"]  = "#888780"
+                resultado["señal_desc"]   = "Sin dato de consumo para calcular stocks/uso"
+            elif ratio < 15:
                 resultado["señal_stocks"] = "AJUSTADO"
                 resultado["señal_color"]  = "#E24B4A"
                 resultado["señal_desc"]   = "Stocks mundiales bajos — presión alcista en precios"
@@ -240,12 +233,97 @@ class ConectorGlobal:
                 resultado["señal_desc"]   = "Stocks abundantes — presión bajista en precios"
 
             self._to_cache(clave, resultado)
-            log.info(f"USDA PSD OK — {cultivo} {año_actual}: stocks ratio={ratio}%")
+            log.info(f"USDA PSD OK — {cultivo} {market_year}: stocks/uso={ratio}%")
             return resultado
 
         except Exception as e:
             log.warning(f"USDA PSD no disponible ({e}) — usando fallback")
-            return self._fallback_usda(cultivo)
+            return self._fallback_usda(cultivo, "USDA no disponible")
+
+    # ── helpers USDA PSD ──────────────────────────────────────
+
+    USDA_BASE = "https://apps.fas.usda.gov/OpenData"
+    # Códigos de respaldo si falla el listado /api/psd/commodities
+    USDA_CODIGOS = {"soja": "2222000", "maiz": "0440000", "trigo": "0410000"}
+    USDA_NOMBRES = {"soja": "soybean", "maiz": "corn", "trigo": "wheat"}
+
+    def _usda_get(self, ruta: str, api_key: str):
+        resp = requests.get(f"{self.USDA_BASE}{ruta}", timeout=TIMEOUT,
+                            headers={**HEADERS, "API_KEY": api_key})
+        resp.raise_for_status()
+        datos = resp.json()
+        if isinstance(datos, dict):
+            for k in ("data", "results", "items"):
+                if isinstance(datos.get(k), list):
+                    return datos[k]
+        return datos
+
+    @staticmethod
+    def _campo(fila: dict, *candidatos, contiene: Optional[str] = None):
+        """Valor de un campo tolerando camelCase / PascalCase / snake_case."""
+        norm = {str(k).replace("_", "").lower(): v for k, v in fila.items()}
+        for c in candidatos:
+            if c.replace("_", "").lower() in norm:
+                return norm[c.replace("_", "").lower()]
+        if contiene:
+            for k, v in norm.items():
+                if contiene in k:
+                    return v
+        return None
+
+    def _usda_codigo_commodity(self, cultivo: str, api_key: str) -> str:
+        """Busca el código del commodity por nombre; cae al código conocido."""
+        try:
+            nombre = self.USDA_NOMBRES[cultivo]
+            for fila in self._usda_get("/api/psd/commodities", api_key):
+                texto = " ".join(str(v).lower() for v in fila.values()
+                                 if isinstance(v, str))
+                if nombre in texto:
+                    codigo = self._campo(fila, "commodityCode", contiene="code")
+                    if codigo not in (None, ""):
+                        return str(codigo)
+        except Exception as e:
+            log.info(f"USDA commodities no disponible ({e}) — código por defecto")
+        return self.USDA_CODIGOS.get(cultivo, "2222000")
+
+    def _usda_atributos(self, api_key: str) -> dict:
+        """Mapa attributeId → descripción normalizada (sin espacios, minúsculas)."""
+        mapa = {}
+        for fila in self._usda_get("/api/psd/commodityAttributes", api_key):
+            attr_id = self._campo(fila, "attributeId", contiene="attributeid")
+            desc = self._campo(fila, "attributeName", "attributeDescription",
+                               "description", contiene="name")
+            if attr_id is not None and desc:
+                mapa[str(attr_id)] = "".join(str(desc).lower().split())
+        return mapa
+
+    def _usda_valores(self, filas: list, atributos_id: dict) -> dict:
+        """
+        Convierte filas PSD (miles de toneladas) a MM tn y calcula stocks/uso.
+        Stocks/uso = existencias finales / consumo doméstico.
+        """
+        nombres = {
+            "production":          "produccion_global_mm_tn",
+            "totalsupply":         "oferta_total_mm_tn",
+            "exports":             "exportaciones_mm_tn",
+            "imports":             "importaciones_mm_tn",
+            "endingstocks":        "stocks_finales_mm_tn",
+            "domesticconsumption": "consumo_domestico_mm_tn",
+        }
+        out: dict = {}
+        for fila in filas or []:
+            attr = self._campo(fila, "attributeId", contiene="attributeid")
+            desc = atributos_id.get(str(attr)) or "".join(
+                str(self._campo(fila, "attributeName", "attributeDescription") or "")
+                .lower().split())
+            destino = nombres.get(desc)
+            valor = self._campo(fila, "value")
+            if destino and valor not in (None, ""):
+                out[destino] = round(float(valor) / 1000, 2)
+        stocks, consumo = out.get("stocks_finales_mm_tn"), out.get("consumo_domestico_mm_tn")
+        if stocks is not None and consumo:
+            out["ratio_stocks_uso_pct"] = round(stocks / consumo * 100, 1)
+        return out
 
     # ── INDICADORES WORLD BANK ────────────────────────────────
 
@@ -610,20 +688,18 @@ class ConectorGlobal:
         # Tabla estática: no se le atribuye un año de FAO
         return [dict(fila, **{"año": None, "referencia": True}) for fila in tabla]
 
-    def _fallback_usda(self, cultivo: str) -> dict:
+    def _fallback_usda(self, cultivo: str, motivo: str = "no disponible") -> dict:
+        """Sin datos USDA: no se inventan cifras; el panel muestra N/D."""
         return {
-            "cultivo":               cultivo,
-            "año":                   None,
-            "campaña":               None,   # valores de referencia: sin campaña real
-            "referencia":            True,
-            "produccion_global_mm_tn": 390.0 if cultivo == "soja" else 1200.0,
-            "stocks_finales_mm_tn":    100.0,
-            "ratio_stocks_uso_pct":    25.0,
-            "señal_stocks":           "MODERADO",
-            "señal_color":            "#BA7517",
-            "señal_desc":             "Stocks en rango normal — mercado equilibrado",
-            "fuente":                 "fallback — valores de referencia",
-            "timestamp":              datetime.now().isoformat(),
+            "cultivo":      cultivo,
+            "año":          None,
+            "campaña":      None,
+            "referencia":   True,
+            "señal_stocks": None,
+            "señal_color":  "#888780",
+            "señal_desc":   "Sin datos del USDA",
+            "fuente":       f"referencia — {motivo}",
+            "timestamp":    datetime.now().isoformat(),
         }
 
 
