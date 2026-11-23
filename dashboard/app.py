@@ -2305,7 +2305,8 @@ def _rotulo_fuente_usda(usda: dict) -> str:
     """Campaña real del marketYear de USDA PSD, o aviso si son valores de referencia."""
     campaña = usda.get("campaña")
     if usda.get("referencia") or not campaña:
-        return "Fuente: valores de referencia (USDA PSD no disponible)"
+        motivo = str(usda.get("fuente", "")).replace("referencia — ", "")
+        return f"Fuente: USDA PSD sin datos ({motivo or 'no disponible'})"
     return f"Fuente: USDA PSD · campaña {campaña}"
 
 
@@ -2377,7 +2378,7 @@ def actualizar_global_usda(_i):
         return []
 
     color_señal = usda.get("señal_color", COLORES["MEDIO"])
-    señal       = usda.get("señal_stocks", "N/D")
+    señal       = usda.get("señal_stocks") or "N/D"
     desc        = usda.get("señal_desc", "")
 
     def _stat(label, valor, unidad="MM tn"):
